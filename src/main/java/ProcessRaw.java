@@ -24,10 +24,10 @@ public class ProcessRaw {
     public static final int EACH = 10 * 10000;
     public static final int TOTAL = 1;
     public static final int HALF_WINDOW = 2;
-    public static final String OUTPUT_PTAH = "C:\\Users\\rainystars\\Desktop\\2010.txt";
-    public static final String OUTPUT_DIR = "C:\\Users\\rainystars\\Desktop\\";
-    public static final String LIBRARY_PTAH = "C:\\Users\\rainystars\\Desktop\\final.dic";
-    public static final String BUILD_LIBRARY_PTAH = "C:\\Users\\rainystars\\Desktop\\final.txt";
+    public static final String OUTPUT_PTAH = "C:\\Users\\rainystars\\Desktop\\relation\\2010.txt";
+    public static final String OUTPUT_DIR = "C:\\Users\\rainystars\\Desktop\\relation\\";
+    public static final String LIBRARY_PTAH = "C:\\Users\\rainystars\\Desktop\\relation\\final.dic";
+    public static final String BUILD_LIBRARY_PTAH = "C:\\Users\\rainystars\\Desktop\\relation\\final.txt";
 
     public static final int START_YEAR = 2012;
     public static final int END_YEAR = 2012;
@@ -63,10 +63,13 @@ public class ProcessRaw {
         System.out.println("Dict built in " + costTime / 1000.0 + "s");
     }
 
-    public static void calc(List<Map<String, String>> list, Map<String,Map<String,Double>> frenquecy){
+
+
+    public static void calc(List<Map<String, String>> list, Map<Integer,Count> frenquecy,Count wordCount,
+                            Map<Integer,Count> wordCoCount){
         for(Map<String,String> article:list){
             //对于每篇文章，获取其摘要
-            String abs = article.get("abstract");
+            String abs = article.get("title");
             String keyword = article.get("keyword");
             List<String> keywords = Splitter.on(",").omitEmptyStrings().splitToList(keyword);
 
@@ -78,12 +81,21 @@ public class ProcessRaw {
                         (term.getNatureStr().contains("n") || term.getNatureStr().contains("userDefine"))) {
                     words.add(term.getName());
                 }*/
+                if(term.getName().length() < 2){
+                    continue;
+                }
                 words.add(term.getName());
             }
+            Set<Integer> local =Sets.newHashSet();
 
             for(int i = 0; i < words.size(); i++){
 
                 String word = words.get(i);
+
+                int curWordIndex = WordMap.set(word);
+                //计算每个词出现的次数
+
+                local.add(curWordIndex);
 
                 //划分词窗
                 int windowStart = i - HALF_WINDOW < 0 ? 0 : i - HALF_WINDOW;
@@ -91,44 +103,59 @@ public class ProcessRaw {
                 int windowMid = i;
                 List<String> wordWindow = words.subList(windowStart, windowEnd);
 
-                Map<String,Double> map = null;
-                if(!frenquecy.containsKey(word)) {
-                    map = Maps.newHashMapWithExpectedSize(20);
+                Count count = null;
+                if(!frenquecy.containsKey(curWordIndex)) {
+                    count = new Count();
                 }else{
-                    map = frenquecy.get(word);
+                    count = frenquecy.get(curWordIndex);
                 }
 
-                //对词窗内的词进行统计
+                //对词窗内的词进行统计 coCount
                 int start  = windowStart;
                 for(String windowWord:wordWindow){
-                    int distance = Math.abs(i-start);
-                    double weight = U * Math.pow(E,- U * distance);
-
                     if(word.equals(windowWord)){
                         continue;
                     }
-                    if(map.containsKey(windowWord)){
-                        map.put(windowWord,map.get(windowWord)+weight);
-                    }else{
-                        map.put(windowWord,weight);
-                    }
+                    // 根据距离，计算相似度
+                    int distance = Math.abs(i-start);
+                    double weight = U * Math.pow(E,- U * distance);
+
+                    int windowWordIndex = WordMap.set(windowWord);
+                    count.increase(windowWordIndex,weight);
                 }
-                //对于词窗内所有词，其与关键词所有都有关系。
+
+                //对于当前词，其与所有其他字段中词语都有关系。 diffCoCount
                 for(String key:keywords){
                     if(word.equals(key)){
                         continue;
                     }
-                    if(map.containsKey(key)){
-                        map.put(key,map.get(key) + M);
-                    }else{
-                        map.put(key, M);
-                    }
+                    int keywordIndex = WordMap.set(key);
+                    count.increase(keywordIndex,M);
+
                 }
-                frenquecy.put(word,map);
+                frenquecy.put(curWordIndex,count);
             }
-
+            //计算机 F(w)
+            for(int index : local){
+                wordCount.increase(index,1);
+            }
+            //计算词语直接共同出现的次数 F(w1, w2)
+            for(int wordA : local){
+                for(int wordB : local){
+                    if(wordA == wordB){
+                        continue;
+                    }
+                    Count count = null;
+                    if(!wordCoCount.containsKey(wordA)) {
+                        count = new Count();
+                    }else{
+                        count = wordCoCount.get(wordA);
+                    }
+                    count.increase(wordB,1);
+                    wordCoCount.put(wordA,count);
+                }
+            }
         }
-
     }
 
 
@@ -138,12 +165,14 @@ public class ProcessRaw {
         UserDefineLibrary.loadLibrary(UserDefineLibrary.FOREST,LIBRARY_PTAH);
 
         List<Map<String, String>> list;
-        Map<String,Map<String,Double>> frenquecy = Maps.newHashMapWithExpectedSize(20 * 10000);
+        Map<Integer,Count> frenquecy = Maps.newHashMapWithExpectedSize(20 * 10000);
+        Count wordCount = new Count();
+        Map<Integer,Count> wordCoCount = Maps.newHashMap();
         long beginTime = System.currentTimeMillis();
 
         for(int j = 1; j <= TOTAL; j++){
             list = dao.getWanFang((j - 1) * EACH, EACH);
-            calc(list,frenquecy);
+            calc(list,frenquecy,wordCount,wordCoCount);
             long endTime=System.currentTimeMillis();
             System.out.println("Calculated in " + (endTime - beginTime) / 1000.0 + "s");
         }
@@ -238,11 +267,31 @@ public class ProcessRaw {
                 System.out.println("Calculated in " + (endTime - beginTime) / 1000.0 + "s");
             }
             Map<String,Map<String,Double>> res = calcContractResult(wordCount,wordCoCount);
-            writeResult(res,OUTPUT_DIR + year + "+contract.txt");
+            //writeResult(res,OUTPUT_DIR + year + "+contract.txt");
             //writeToSolr(frenquecy,year);
             //清空频率
             wordCount = Maps.newHashMapWithExpectedSize(20 * 10000);
             wordCoCount = Maps.newHashMapWithExpectedSize(20 * 10000);
+        }
+    }
+    public static void updateSim(Map<Integer,Count> frenquecy, Count wordCount, Map<Integer,Count> wordCoCount){
+
+        Set<Integer> set = new HashSet(frenquecy.keySet());
+        for(int wordA:set){
+            Count count = frenquecy.get(wordA);
+            Count newCount = new Count();
+            for(Map.Entry<Integer,Double> entry : count.entrySet()){
+                int wordB = entry.getKey();
+                double value = 0;
+                if(wordCoCount.get(wordA) == null || wordCount.get(wordA) == null || wordCoCount.get(wordA).get(wordB) == null){
+                    value = 0;
+                }else{
+                    value = entry.getValue() / wordCount.get(wordA)
+                            * Math.log10(wordCoCount.get(wordA).get(wordB) / wordCount.get(wordA) + 1);
+                }
+                newCount.set(wordB,value);
+             }
+            frenquecy.put(wordA,newCount);
         }
     }
 
@@ -252,15 +301,24 @@ public class ProcessRaw {
         UserDefineLibrary.loadLibrary(UserDefineLibrary.FOREST,LIBRARY_PTAH);
 
         List<Map<String, String>> list;
-        Map<String,Map<String,Double>> frenquecy = Maps.newHashMapWithExpectedSize(20 * 10000);
+        Map<Integer,Count> frenquecy = Maps.newHashMapWithExpectedSize(20 * 10000);
+        Count wordCount = new Count();
+        Map<Integer,Count> wordCoCount = Maps.newHashMap();
         long beginTime = System.currentTimeMillis();
         for(int year = START_YEAR; year <= END_YEAR; year++){
-            for(int j = 1; j <= TOTAL * 4 ; j++){
+            for(int j = 1; j <= TOTAL * 10 ; j++){
                 list = dao.getWanFangByYear((j - 1) * EACH, EACH, year);
-                calc(list,frenquecy);
+                calc(list,frenquecy,wordCount,wordCoCount);
                 long endTime=System.currentTimeMillis();
                 System.out.println("Calculated in " + (endTime - beginTime) / 1000.0 + "s");
             }
+            System.out.println("WordMap size: " + WordMap.size());
+            System.out.println("frenquency size: " + frenquecy.size());
+            System.out.println("wordCount size: " + wordCount.size());
+            System.out.println("wordCoCount size: " + wordCoCount.size());
+
+
+            updateSim(frenquecy, wordCount, wordCoCount);
             writeResult(frenquecy,OUTPUT_DIR + year + ".txt");
             //writeToSolr(frenquecy,year);
             //清空频率
@@ -282,7 +340,6 @@ public class ProcessRaw {
             System.out.println(key + ": " + list);
         }
     }
-
     public static void writeToSolr(Map<String,Map<String,Double>> frenquecy,int year){
         SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/relation");
         int count = 0;
@@ -322,26 +379,24 @@ public class ProcessRaw {
         }
     }
 
-    public static void writeResult(Map<String,Map<String,Double>> frenquecy,String filename){
+    private static List<String>  trans(List<Map.Entry> list){
+        List<String> res = Lists.newArrayList();
+        for(Map.Entry<Integer,Double> entry:list){
+            res.add(WordMap.get(entry.getKey()) + ":" + entry.getValue());
+        }
+        return res;
+    }
+
+
+    public static void writeResult(Map<Integer,Count> frenquecy,String filename){
 
         try {
             FileWriter fw = new FileWriter(new File(filename));
-            for(String key:frenquecy.keySet()){
+            for(Integer index:frenquecy.keySet()){
 
-                Map<String,Double> map = frenquecy.get(key);
-                List list = new ArrayList(map.entrySet());
-                if(list.size() <= 4){
-                    continue;
-                }
-                Collections.sort(list, new Comparator() {
-                    public int compare(Object o1, Object o2) {
-                        return 0 - ((Comparable) ((Map.Entry) (o1)).getValue())
-                                .compareTo(((Map.Entry) (o2)).getValue());
-                    }});
-                if(list.size() > 40){
-                    list = list.subList(0,40);
-                }
-                fw.write(key + ": " + list +"\n");
+                Count map = frenquecy.get(index);
+                List<Map.Entry> list = map.sort();
+                fw.write(WordMap.get(index) + ": " + trans(list) +"\n");
             }
             fw.close();
         } catch (IOException e) {
@@ -354,7 +409,7 @@ public class ProcessRaw {
     public static void main(String[] args){
         ProcessRaw.buildDict();
         //ProcessRaw.calcTotal();
-        //ProcessRaw.calcByYear();
-        ProcessRaw.calcPossiblity();
+        ProcessRaw.calcByYear();
+        //ProcessRaw.calcPossiblity();
     }
 }
