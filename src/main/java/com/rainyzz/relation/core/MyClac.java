@@ -22,7 +22,7 @@ public class MyClac
     public static final double M = 0.15;
     public static final int HALF_WINDOW = 2;
 
-    public static void calc(List<Map<String, String>> list, Map<Integer,Count> frenquecy,Count wordCount,
+    public static void calc(List<Map<String, String>> list,Count wordTotalCount, Map<Integer,Count> frenquecy,Count wordCount,
                             Map<Integer,Count> wordCoCount){
         for(Map<String,String> article:list){
             //对于每篇文章，获取其摘要
@@ -43,16 +43,19 @@ public class MyClac
                 }
                 words.add(term.getName());
             }
+
             Set<Integer> local = Sets.newHashSet();
+
 
             for(int i = 0; i < words.size(); i++){
 
                 String word = words.get(i);
 
                 int curWordIndex = WordMap.set(word);
-                //计算每个词出现的次数
 
                 local.add(curWordIndex);
+                //计算每个词出现的总次数
+                wordTotalCount.increase(curWordIndex,1);
 
                 //划分词窗
                 int windowStart = i - HALF_WINDOW < 0 ? 0 : i - HALF_WINDOW;
@@ -82,20 +85,29 @@ public class MyClac
                 }
 
                 //对于当前词，其与所有其他字段中词语都有关系。 diffCoCount
+                int curLen = abs.length();
+                int keywordLen = keyword.length();
                 for(String key:keywords){
+
                     if(word.equals(key)){
                         continue;
                     }
                     int keywordIndex = WordMap.set(key);
-                    count.increase(keywordIndex,M);
+
+                    double weight = U * Math.pow(E,- U * (M * curLen / keywordLen));
+                    count.increase(keywordIndex,weight);
                 }
                 frenquecy.put(curWordIndex,count);
             }
-            //计算机 F(w)
+            //将关键词加入
+            for(String key:keywords){
+                local.add(WordMap.set(key));
+            }
+            //计算 F(w)，即一个词出现的文档数
             for(int index : local){
                 wordCount.increase(index,1);
             }
-            //计算词语直接共同出现的次数 F(w1, w2)
+            //计算词语直接共同出现的文档数 F(w1, w2)
             for(int wordA : local){
                 Count count = null;
                 if(!wordCoCount.containsKey(wordA)) {
@@ -115,7 +127,7 @@ public class MyClac
         }
     }
 
-    public static void update(Map<Integer,Count> frenquecy, Count wordCount, Map<Integer,Count> wordCoCount){
+    public static void update(Map<Integer,Count> frenquecy,Count wordTotalCount, Count wordCount, Map<Integer,Count> wordCoCount){
 
         Set<Integer> set = new HashSet(frenquecy.keySet());
         for(int wordA:set){
@@ -127,7 +139,7 @@ public class MyClac
                 if(wordCoCount.get(wordA) == null || wordCount.get(wordA) == null || wordCoCount.get(wordA).get(wordB) == null){
                     value = 0;
                 }else{
-                    value = entry.getValue() / wordCount.get(wordA)
+                    value = entry.getValue() / wordTotalCount.get(wordA)
                             * Math.log10(wordCoCount.get(wordA).get(wordB) / wordCount.get(wordA) + 1);
                 }
                 newCount.set(wordB,value);
