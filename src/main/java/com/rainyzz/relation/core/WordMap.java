@@ -1,3 +1,5 @@
+package com.rainyzz.relation.core;
+
 import com.google.common.collect.Maps;
 
 import java.util.Map;

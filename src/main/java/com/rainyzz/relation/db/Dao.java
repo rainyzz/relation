@@ -1,3 +1,5 @@
+package com.rainyzz.relation.db;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 

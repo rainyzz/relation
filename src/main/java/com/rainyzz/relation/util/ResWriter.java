@@ -1,4 +1,8 @@
+package com.rainyzz.relation.util;
+
 import com.google.common.collect.Lists;
+import com.rainyzz.relation.core.Count;
+import com.rainyzz.relation.core.WordMap;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;

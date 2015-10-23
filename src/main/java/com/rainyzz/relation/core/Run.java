@@ -1,4 +1,8 @@
+package com.rainyzz.relation.core;
+
 import com.google.common.collect.Maps;
+import com.rainyzz.relation.db.Dao;
+import com.rainyzz.relation.util.ResWriter;
 import org.ansj.library.UserDefineLibrary;
 import java.util.*;
 
@@ -50,6 +54,10 @@ public class Run {
                 long endTime=System.currentTimeMillis();
                 System.out.println("Calculated in " + (endTime - beginTime) / 1000.0 + "s");
             }
+            System.out.println("com.rainyzz.relation.core.WordMap size: " + WordMap.size());
+            System.out.println("wordCount size: " + wordCount.size());
+            System.out.println("wordCoCount size: " + wordCoCount.size());
+
             Map<Integer,Count> res = ConCalc.update(wordCount, wordCoCount);
             ResWriter.writeResult(res, OUTPUT_DIR + year + "+contract.txt");
             //writeToSolr(frenquecy,year);
@@ -75,22 +83,24 @@ public class Run {
                 long endTime=System.currentTimeMillis();
                 System.out.println("Calculated in " + (endTime - beginTime) / 1000.0 + "s");
             }
-            System.out.println("WordMap size: " + WordMap.size());
+            System.out.println("com.rainyzz.relation.core.WordMap size: " + WordMap.size());
             System.out.println("frenquency size: " + frenquecy.size());
             System.out.println("wordCount size: " + wordCount.size());
             System.out.println("wordCoCount size: " + wordCoCount.size());
-            
+
             MyClac.update(frenquecy, wordCount, wordCoCount);
-            ResWriter.writeResult(frenquecy,OUTPUT_DIR + year + ".txt");
+            ResWriter.writeResult(frenquecy, OUTPUT_DIR + year + ".txt");
             //writeToSolr(frenquecy,year);
             //清空频率
             frenquecy = Maps.newHashMapWithExpectedSize(20 * 10000);
+            wordCount = new Count();
+            wordCoCount = Maps.newHashMap();
         }
     }
 
     public static void main(String[] args){
-        //Run.calcTotal();
-        //Run.calcByYear();
+        //com.rainyzz.relation.core.Run.calcTotal();
+        //com.rainyzz.relation.core.Run.calcByYear();
         Run.calcPossiblity();
     }
 }
