@@ -18,6 +18,11 @@
         <url>http://repo1.maven.org/maven2</url>
         </repository>
     </repositories>
+
+    <properties>
+        <hadoop.version>2.6.0</hadoop.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -56,12 +61,21 @@
             <version>1.7.7</version>
         </dependency>
 
-
-
-
-
-
-
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-core</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
 
     </dependencies>
 

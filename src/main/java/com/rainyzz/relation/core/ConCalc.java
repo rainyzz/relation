@@ -60,7 +60,7 @@ public class ConCalc {
 
         }
     }
-    public static Map<Integer,Count>  update(Count  wordCount, Map<Integer,Count> wordCoCount){
+    public static Map<Integer,Count>  update(Count wordCount, Map<Integer,Count> wordCoCount){
         Map<Integer,Count> res = Maps.newHashMap();
 
         for(Integer wordA:wordCoCount.keySet()){
@@ -72,8 +72,6 @@ public class ConCalc {
             }
             res.put(wordA,p);
         }
-
         return res;
-
     }
 }
