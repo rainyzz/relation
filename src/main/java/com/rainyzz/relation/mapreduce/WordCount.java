@@ -112,7 +112,84 @@ public class WordCount {
                 }*/
             }
         }
+    public static class WordCountCombiner extends Reducer<Text,Text,Text,Text> {
+        private Text result = new Text();
+
+        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            int wordCount = 0;
+            Map<String,Integer> count = Maps.newHashMap();
+            Map<String,Double> frequency = Maps.newHashMap();
+            for(Text value:values){
+                String v = value.toString();
+                if(v.startsWith("&")){
+                    //CoCount
+                    String wordB = v.substring(1,v.length()).split("@")[0];
+                    String num = v.substring(1,v.length()).split("@")[1];
+                    if( "".equals(wordB) || "".equals(num)){
+                        continue;
+                    }
+                    int n = 0;
+                    try {
+                        n = Integer.valueOf(num);
+                    }catch (Exception e){
+                        continue;
+                    }
+
+                    if(count.containsKey(wordB)){
+                        count.put(wordB,count.get(wordB)+n);
+                    }else{
+                        count.put(wordB,n);
+                    }
+                }else if(v.startsWith("@")) {
+                    //Frequency
+                    String wordB = v.substring(1,v.length()).split("@")[0];
+                    String num = v.substring(1,v.length()).split("@")[1];
+
+                    double n = 0;
+                    try {
+                        n = Double.valueOf(num);
+                    }catch (Exception e){
+                        continue;
+                    }
+                    if(frequency.containsKey(wordB)){
+                        frequency.put(wordB,frequency.get(wordB)+n);
+                    }else{
+                        frequency.put(wordB, n);
+                    }
+
+                }else{
+                    //Count
+                    try {
+                        int intV = Integer.valueOf(v);
+                        wordCount += intV;
+                    }catch (Exception e){
+                        continue;
+                    }
+                }
+                //WordCount
+                result.set(String.valueOf(wordCount));
+                context.write(key,result);
+
+                //WordCoCount
+                for(String wordB:count.keySet()){
+
+                    int weight = count.get(wordB);
+                    result.set("&"+wordB+"@"+String.valueOf(weight));
+                    context.write(key,result);
+                }
+
+                //Frequency
+                for(String wordB:frequency.keySet()){
+
+                    double weight = frequency.get(wordB);
+                    result.set("@"+wordB+"@"+String.valueOf(weight));
+                    context.write(key, result);
+                }
+            }
+        }
     }
+
+
     public static class WordCountReducer
             extends Reducer<Text,Text,Text,Text> {
 
@@ -122,47 +199,69 @@ public class WordCount {
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             int wordCount = 0;
             Map<String,Integer> count = Maps.newHashMap();
-            Map<String,Double> frequence = Maps.newHashMap();
+            Map<String,Double> frequency = Maps.newHashMap();
             for(Text value:values){
                 String v = value.toString();
                 if(v.startsWith("&")){
                     //CoCount
                     String wordB = v.substring(1,v.length()).split("@")[0];
                     String num = v.substring(1,v.length()).split("@")[1];
-                    int n = Integer.valueOf(num);
+                    if( "".equals(wordB) || "".equals(num)){
+                        continue;
+                    }
+                    int n = 0;
+                    try {
+                        n = Integer.valueOf(num);
+                    }catch (Exception e){
+                        continue;
+                    }
+
                     if(count.containsKey(wordB)){
                         count.put(wordB,count.get(wordB)+n);
                     }else{
                         count.put(wordB,n);
                     }
                 }else if(v.startsWith("@")) {
-                    //frequence
+                    //Frequency
                     String wordB = v.substring(1,v.length()).split("@")[0];
                     String num = v.substring(1,v.length()).split("@")[1];
-                    double n = Double.valueOf(num);
-                    if(frequence.containsKey(wordB)){
-                        frequence.put(wordB,frequence.get(wordB)+n);
+
+                    double n = 0;
+                    try {
+                        n = Double.valueOf(num);
+                    }catch (Exception e){
+                        continue;
+                    }
+                    if(frequency.containsKey(wordB)){
+                        frequency.put(wordB,frequency.get(wordB)+n);
                     }else{
-                        frequence.put(wordB,n);
+                        frequency.put(wordB, n);
                     }
 
                 }else{
                     //Count
-                    wordCount += Integer.valueOf(v);
+                    try {
+                        int intV = Integer.valueOf(v);
+                        wordCount += intV;
+                    }catch (Exception e){
+                        continue;
+                    }
                 }
             }
             Map<String,Double> rst = Maps.newHashMap();
 
-            for(String wordB:frequence.keySet()){
-                double cocurWeight = frequence.get(wordB);
-                int wordcoCount = count.get(wordB);
+            for(String wordB:frequency.keySet()){
+
+                double cocurWeight = frequency.get(wordB);
+                int wordcoCount = 0;
+                if(count.containsKey(wordB)){
+                    wordcoCount = count.get(wordB);
+                }else{
+                    continue;
+                }
 
                 double weight = cocurWeight / wordCount
                         * Math.log10(wordcoCount / wordCount + 1);
-
-                if(wordcoCount == 0){
-                    continue;
-                }
 
                 rst.put(wordB,weight);
                 /*result.set("CoCount: "+ wordcoCount + ", Count: "+ wordCount+", Weight:" + weight);
@@ -179,7 +278,7 @@ public class WordCount {
                 public int compare(Object o1, Object o2) {
                     return 0 - ((Comparable) ((Map.Entry) (o1)).getValue())
                             .compareTo(((Map.Entry) (o2)).getValue());
-                    }
+                }
             });
             if(list.size() > 100){
                 list = list.subList(0,100);
@@ -191,7 +290,7 @@ public class WordCount {
                 int wordcoCount = count.get(wordB);
                 result.set("CoCount: "+ wordcoCount + ", Count: "+ wordCount+", Weight:" + weight);
                 wordPair.set(key+"&"+wordB);
-                context.write(wordPair,result);
+                context.write(wordPair, result);
             }
 
 
@@ -211,7 +310,7 @@ public class WordCount {
 
         job.setMapperClass(WordCountMapper.class);
         job.setReducerClass(WordCountReducer.class);
-        //job.setCombinerClass(WordCountReducer.class);
+        job.setCombinerClass(WordCountCombiner.class);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
