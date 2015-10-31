@@ -25,7 +25,15 @@ public class LineWriter {
             List<String> words = Lists.newArrayList();
 
             for(Term term:terms) {
-                if(term.getName().length() < 2){
+                String word = term.getName();
+                if(word.length() < 2){
+                    continue;
+                }
+                char w = word.charAt(0);
+                if(('a' <= w && w <= 'z') || ('A' <= w && w <= 'Z')  || Character.isDigit(w)){
+                    continue;
+                }
+                if(w == '#' || w == '\'' || w == '%' || w== '@' || w=='&' || w =='—'){
                     continue;
                 }
                 words.add(term.getName());
@@ -44,7 +52,9 @@ public class LineWriter {
         return Joiner.on("', '").skipNulls().join(article);
     }
     public static void main(String[] args){
-        String s = "INSERT INTO `wanfang_detail` VALUES ('1', '有害元素对高炉内焦炭热态性能的影响', 'Effect of Harmful Elements on Thermal Properties of Cokes in BF', '针对有害元素在高炉内的反应行为和对焦炭劣化的催化作用,分析了钾、钠、锌、铅、氯化物在高炉内的循环富集过程,重点探讨了其对焦炭热态性能的影响,进一步明确了几种有害元素对焦炭和高炉冶炼的危害性,并根据其循环富集特点提出了控制措施.', '', '张伟,王再义,张立国,王亮,韩子文', ' Zhang Wei , Wang Zaiyi , Zhang Liguo , Wang Liang , Han Ziwen ', '鞍钢股份有限公司技术中心', '鞍钢技术', 'Angang Technology', '2013,(5)', '高炉,有害元素,焦炭', '', 'http://d.wanfangdata.com.cn/Periodical_agjs201305002.aspx', '41.152991112691,122.93622425434');\n";
+        String s = "INSERT INTO `wanfang_detail` VALUES ('有害元素对高炉内焦炭热态性能的影响', '针对有害元素在高炉内的反应行为和对焦炭劣化的催化作用,分析了钾、钠、锌、铅、氯化物在高炉内的循环富集过程,重点探讨了其对焦炭热态性能的影响,进一步明确了几种有害元素对焦炭和高炉冶炼的危害性,并根据其循环富集特点提出了控制措施.', '张伟,王再义,张立国,王亮,韩子文', '鞍钢股份有限公司技术中心', '鞍钢技术', '2013', '高炉,有害元素,焦炭', '41.152991112691,122.93622425434');";
+
+        //System.out.println(LineWriter.token(s));
         System.out.println(LineWriter.token(LineReader.readRecordToList(s,LineReader.SQL_START,LineReader.SQL_END)));
 
 

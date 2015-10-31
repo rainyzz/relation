@@ -276,6 +276,9 @@ public class WordCount {
                     } else {
                         continue;
                     }
+                    if(wordCount == 0 || wordDocCount == 0){
+                        continue;
+                    }
 
                     double weight = windowWeight / wordCount
                             * Math.log10(pairDocCount * 1.0 / wordDocCount + 1);
