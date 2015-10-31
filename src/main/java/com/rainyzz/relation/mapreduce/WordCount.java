@@ -2,13 +2,11 @@ package com.rainyzz.relation.mapreduce;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
-import com.rainyzz.relation.core.Count;
+
 import com.rainyzz.relation.util.LineReader;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -22,8 +20,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class WordCount {
-    public static class WordCountMapper
-            extends Mapper<LongWritable,Text,Text,Text> {
+    public static class WordCountMapper extends Mapper<LongWritable,Text,Text,Text> {
         public static final double E = 2.71828182846;
         public static final double U = 0.1;
         public static final double M = 0.15;
@@ -31,6 +28,25 @@ public class WordCount {
 
         private Text result = new Text();
         private Text word = new Text();
+
+        private void otherColumnClac(String[] keywords,String curWord,Context context) throws IOException, InterruptedException{
+            int curLen = curWord.length();
+
+            for(String keyword:keywords){
+                if(curWord.equals(keyword)){
+                    continue;
+                }
+                int keywordLen = keyword.length();
+                if(keywordLen == 0){
+                    continue;
+                }
+                double weight = U * Math.pow(E,- U * (M * curLen / keywordLen));
+                result.set("@" + keyword + "@" + weight);
+                word.set(curWord);
+                context.write(word, result);
+            }
+
+        }
 
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             String sentence = value.toString();
@@ -78,8 +94,7 @@ public class WordCount {
                 int windowEnd = i + HALF_WINDOW > abstracts.length ? abstracts.length : i + HALF_WINDOW;
                 int windowMid = i;
 
-                //对词窗内的词进行统计 coCount
-
+                //对词窗内的词进行统计 windowWeight
                 for (int j = windowStart; j < windowEnd; j++) {
                     if (curWord.equals(abstracts[j])) {
                         continue;
@@ -90,25 +105,21 @@ public class WordCount {
                     word.set(curWord);
                     context.write(word, result);
                 }
+                //统计单个词语出现的次数
+                result.set("#1");
+                word.set(curWord);
+                context.write(word,result);
 
                 //对于当前词，其与所有其他字段中词语都有关系。 diffCoCount
-                /*int curLen = abs.length();
-                int keywordLen = keyword.length();
-                for(String key:keywords){
+                otherColumnClac(keywords, curWord, context);
+                otherColumnClac(titles,curWord,context);
 
-                    if(word.equals(key)){
-                        continue;
-                    }
-                    int keywordIndex = WordMap.set(key);
-
-                    double weight = U * Math.pow(E,- U * (M * curLen / keywordLen));
-                    count.increase(keywordIndex,weight);
-                }*/
             }
         }
     }
 
-    public static class WordCountCombiner extends Reducer<Text, Text, Text, Text> {
+
+    /*public static class WordCountCombiner extends Reducer<Text, Text, Text, Text> {
             private Text result = new Text();
 
             public void reduce(Text key, Iterable<Text> values, Context context) throws IOException,
@@ -184,24 +195,24 @@ public class WordCount {
                     }
                 }
             }
-        }
+        }*/
 
 
-        public static class WordCountReducer
-                extends Reducer<Text, Text, Text, Text> {
+        public static class WordCountReducer extends Reducer<Text, Text, Text, Text> {
 
             private Text result = new Text();
             private Text wordPair = new Text();
 
             public void reduce(Text key, Iterable<Text> values, Context context) throws IOException,
                     InterruptedException {
+                int wordDocCount = 0;
                 int wordCount = 0;
-                Map<String, Integer> count = Maps.newHashMap();
-                Map<String, Double> frequency = Maps.newHashMap();
+                Map<String, Integer> pairDocCounts = Maps.newHashMap();
+                Map<String, Double> windowWeights = Maps.newHashMap();
                 for (Text value : values) {
                     String v = value.toString();
                     if (v.startsWith("&")) {
-                        //CoCount
+                        //Pair Document Count
                         String wordB = v.substring(1, v.length()).split("@")[0];
                         String num = v.substring(1, v.length()).split("@")[1];
                         if ("".equals(wordB) || "".equals(num)) {
@@ -214,13 +225,13 @@ public class WordCount {
                             continue;
                         }
 
-                        if (count.containsKey(wordB)) {
-                            count.put(wordB, count.get(wordB) + n);
+                        if (pairDocCounts.containsKey(wordB)) {
+                            pairDocCounts.put(wordB, pairDocCounts.get(wordB) + n);
                         } else {
-                            count.put(wordB, n);
+                            pairDocCounts.put(wordB, n);
                         }
                     } else if (v.startsWith("@")) {
-                        //Frequency
+                        //Window Weight
                         String wordB = v.substring(1, v.length()).split("@")[0];
                         String num = v.substring(1, v.length()).split("@")[1];
 
@@ -230,41 +241,49 @@ public class WordCount {
                         } catch (Exception e) {
                             continue;
                         }
-                        if (frequency.containsKey(wordB)) {
-                            frequency.put(wordB, frequency.get(wordB) + n);
+                        if (windowWeights.containsKey(wordB)) {
+                            windowWeights.put(wordB, windowWeights.get(wordB) + n);
                         } else {
-                            frequency.put(wordB, n);
+                            windowWeights.put(wordB, n);
                         }
 
-                    } else {
-                        //Count
+                    }else if (v.startsWith("#")){
+                        //Word Count
+                        try {
+                            int intV = Integer.valueOf(v.substring(1));
+                            wordCount += intV;
+                        } catch (Exception e) {
+                            continue;
+                        }
+                    }else{
+                        //Word Document Count
                         try {
                             int intV = Integer.valueOf(v);
-                            wordCount += intV;
+                            wordDocCount += intV;
                         } catch (Exception e) {
                             continue;
                         }
                     }
                 }
+                // Final Weight
                 Map<String, Double> rst = Maps.newHashMap();
+                for (String wordB : windowWeights.keySet()) {
 
-                for (String wordB : frequency.keySet()) {
-
-                    double cocurWeight = frequency.get(wordB);
-                    int wordcoCount = 0;
-                    if (count.containsKey(wordB)) {
-                        wordcoCount = count.get(wordB);
+                    double windowWeight = windowWeights.get(wordB);
+                    int pairDocCount = 0;
+                    if (pairDocCounts.containsKey(wordB)) {
+                        pairDocCount = pairDocCounts.get(wordB);
                     } else {
                         continue;
                     }
 
-                    double weight = cocurWeight / wordCount
-                            * Math.log10(wordcoCount * 1.0 / wordCount + 1);
+                    double weight = windowWeight / wordCount
+                            * Math.log10(pairDocCount * 1.0 / wordDocCount + 1);
 
                     rst.put(wordB, weight);
                 }
 
-
+                // Result Sort
                 List<Map.Entry> list = new ArrayList<Map.Entry>(rst.entrySet());
                 if (list.size() <= 4) {
                     return;
@@ -279,12 +298,13 @@ public class WordCount {
                     list = list.subList(0, 100);
                 }
 
+                // Output
                 for (Map.Entry<String, Double> entry : list) {
                     String wordB = entry.getKey();
                     double weight = entry.getValue();
-                    int wordcoCount = count.get(wordB);
-                    result.set("CoCount: " + wordcoCount + ", Count: " + wordCount +", Frequency: "
-                            + frequency.get(wordB)+", Weight:" + weight);
+                    int pairDocCount = pairDocCounts.get(wordB);
+                    result.set("pairDocCount: " + pairDocCount + ", wordDocCount: " + wordDocCount+
+                            ", wordCount: "+wordCount +", windowWeight: " + windowWeights.get(wordB)+", Result:" + weight);
                     wordPair.set(key + "&" + wordB);
                     context.write(wordPair, result);
                 }
@@ -305,7 +325,7 @@ public class WordCount {
 
         job.setMapperClass(WordCountMapper.class);
         job.setReducerClass(WordCountReducer.class);
-        job.setCombinerClass(WordCountCombiner.class);
+        //job.setCombinerClass(WordCountCombiner.class);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
