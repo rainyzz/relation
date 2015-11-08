@@ -3,6 +3,7 @@ package com.rainyzz.relation.util;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +15,7 @@ public class LineReader {
     final static int SQL_END = 4;
 
     public static Map<String,String> readRecord(String line,int start,int fromEnd){
-        Map<String,String> article = Maps.newHashMap();
+        Map<String,String> article = new HashMap<String, String>();
 
         String content = line.substring(start, line.length() - fromEnd);
         String[] data = content.split("', '");
