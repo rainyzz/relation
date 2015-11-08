@@ -22,8 +22,7 @@ public class SparkClac {
 
     public static JavaPairRDD calc(JavaRDD<String> lines) {
         lines.cache();
-        JavaPairRDD<Tuple2<String, String>,Integer> wordPairDocCountRDD = lines.flatMapToPair(new PairFlatMapFunction<String, Tuple2<String, String>, Integer>() {
-            public Iterable<Tuple2<Tuple2<String, String>,Integer>> call(String line) {
+        JavaPairRDD<Tuple2<String, String>,Integer> pairDocCountRDD = lines.flatMapToPair(line->{
                 Map<String, String> article = LineReader.readRecord(line, 0, 0);
                 Set<String> words = new HashSet<>();
 
@@ -31,15 +30,10 @@ public class SparkClac {
                 //String[] titles = article.get("title").split(" ");
                 String[] keywords = article.get("keyword").split(" ");
 
-                for (String word : abstracts) {
-                    words.add(word);
-                }
-                /*for (String word : titles) {
-                    words.add(word);
-                }*/
-                for (String word : keywords) {
-                    words.add(word);
-                }
+                words.addAll(Arrays.asList(abstracts));
+                //words.addAll(Arrays.asList(titles));
+                words.addAll(Arrays.asList(keywords));
+
                 List<Tuple2<Tuple2<String, String>,Integer>> result = new ArrayList<>();
                 for (String wordA : words) {
                     for (String wordB : words) {
@@ -51,11 +45,9 @@ public class SparkClac {
                 }
                 return result;
             }
-        }
         ).reduceByKey((a,b)->a+b);
 
-        JavaPairRDD<String, Integer> wordDocCountRDD = lines.flatMapToPair(new PairFlatMapFunction<String, String, Integer>() {
-            public Iterable<Tuple2<String, Integer>> call(String line) {
+        JavaPairRDD<String, Integer> wordDocCountRDD = lines.flatMapToPair(line ->{
 
                 Map<String, String> article = LineReader.readRecord(line, 0, 0);
                 Set<String> words = new HashSet<>();
@@ -64,21 +56,15 @@ public class SparkClac {
                 String[] titles = article.get("title").split(" ");
                 String[] keywords = article.get("keyword").split(" ");
 
-                for (String word : abstracts) {
-                    words.add(word);
-                }
-                for (String word : titles) {
-                    words.add(word);
-                }
-                for (String word : keywords) {
-                    words.add(word);
-                }
+                words.addAll(Arrays.asList(abstracts));
+                words.addAll(Arrays.asList(titles));
+                words.addAll(Arrays.asList(keywords));
+
                 List<Tuple2<String, Integer>> result = new ArrayList<>();
                 // 统计单个词出现的文档个数
                 words.forEach(w->result.add(new Tuple2<>(w, 1)));
 
                 return result;
-            }
         }).reduceByKey((a,b)->a+b);
 
         JavaPairRDD<Tuple2<String,String>, Double> weightRDD = lines.flatMapToPair(new PairFlatMapFunction<String, Tuple2<String, String>, Double>() {
@@ -134,20 +120,18 @@ public class SparkClac {
         }).reduceByKey((a,b)->a+b);
 
         JavaPairRDD<String, Tuple5<String,Integer,Double,Integer,Integer>> allDataRDD =
-                wordPairDocCountRDD.join(weightRDD).mapToPair(
+                pairDocCountRDD.join(weightRDD).mapToPair(
                         (Tuple2<Tuple2<String,String>,Tuple2<Integer, Double>> tp) ->
                              new Tuple2<>(tp._1()._1(), new Tuple3<>(tp._1()._2(), tp._2()._1, tp._2._2())))
                 .join(wordDocCountRDD)
-                .join(lines.flatMapToPair(new PairFlatMapFunction<String, String, Integer>() {
-                    public Iterable<Tuple2<String, Integer>> call(String line) {
-
+                .join(lines.flatMapToPair(line -> {
                         Map<String, String> article = LineReader.readRecord(line, 0, 0);
 
                         String[] abstracts = article.get("abs").split(" ");
                         String[] titles = article.get("title").split(" ");
                         String[] keywords = article.get("keyword").split(" ");
 
-                        List<Tuple2<String, Integer>> result = new ArrayList<Tuple2<String, Integer>>();
+                        List<Tuple2<String, Integer>> result = new ArrayList<>();
                         for (String word : abstracts) {
                             result.add(new Tuple2<>(word, 1));
                         }
@@ -159,7 +143,7 @@ public class SparkClac {
                         }
 
                         return result;
-                    }
+
                 }).reduceByKey((a, b) -> a + b)).mapToPair(tp->new Tuple2<>(
                         tp._1(), new Tuple5<>(tp._2()._1()._1()._1(),
                                 tp._2._1()._1()._2(),
@@ -172,19 +156,17 @@ public class SparkClac {
             int pairDocCount = tp._2._2();
             double windowWeight = tp._2._3();
             int wordCount = tp._2._4();
-            int swordDocCount = tp._2._5();
+            int wordDocCount = tp._2._5();
             double result = 0;
-            result = windowWeight / wordCount
-                    * Math.log10(pairDocCount * 1.0 / swordDocCount + 1);
+            result = windowWeight / wordCount * Math.log10(pairDocCount * 1.0 / wordDocCount + 1);
             return new Tuple2<>(tp._1(),new Tuple2<>(tp._2._1(),result));
-        }).groupByKey().mapToPair(tp->{
-            ArrayList<Tuple2<String,Double>> list = new ArrayList<>();
-            tp._2.forEach(t -> list.add(t));
-            Collections.sort(list,(a,b)->((Double.compare(b._2,a._2))));
-            return new Tuple2<>(tp._1(),list.size() > 100 ?list.subList(0,100) :list);
-        });
+        }).groupByKey().mapToPair(tp -> {
+                    ArrayList<Tuple2<String, Double>> list = new ArrayList<>();
+                    tp._2.forEach(t -> list.add(t));
+                    Collections.sort(list, (a, b) -> ((Double.compare(b._2, a._2))));
+                    return new Tuple2<>(tp._1(), list.size() > 100 ? list.subList(0, 100) : list);
+                });
     }
-
 
     public static void main(String[] args){
         SparkConf conf = new SparkConf().setAppName("Word Relation");
