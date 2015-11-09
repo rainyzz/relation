@@ -10,7 +10,9 @@ import org.apache.spark.api.java.function.PairFlatMapFunction;
 import scala.Tuple2;
 import scala.Tuple3;
 import scala.Tuple5;
+import scala.Tuple6;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 
@@ -28,14 +30,8 @@ public class SparkClac {
         JavaPairRDD<Tuple2<String, String>,Integer> pairDocCountRDD = lines.flatMapToPair(line->{
                 Map<String, String> article = LineReader.readRecord(line);
                 Set<String> words = new HashSet<>();
-
-                String[] abstracts = article.get("des_c").split(" ");
-                String[] titles = article.get("title_c").split(" ");
-                String[] keywords = article.get("keyword_c").split(" ");
-
-                words.addAll(Arrays.asList(abstracts));
-                words.addAll(Arrays.asList(titles));
-                words.addAll(Arrays.asList(keywords));
+                Set<String> allColumn = new HashSet<>(Arrays.asList("des_c","title_c","keyword_c"));
+                allColumn.forEach(col -> words.addAll(Arrays.asList(article.get(col).split(" "))));
 
                 List<Tuple2<Tuple2<String, String>,Integer>> result = new ArrayList<>();
                 for (String wordA : words) {
@@ -55,13 +51,8 @@ public class SparkClac {
                 Map<String, String> article = LineReader.readRecord(line);
                 Set<String> words = new HashSet<>();
 
-                String[] abstracts = article.get("des_c").split(" ");
-                String[] titles = article.get("title_c").split(" ");
-                String[] keywords = article.get("keyword_c").split(" ");
-
-                words.addAll(Arrays.asList(abstracts));
-                words.addAll(Arrays.asList(titles));
-                words.addAll(Arrays.asList(keywords));
+                Set<String> allColumn = new HashSet<>(Arrays.asList("des_c","title_c","keyword_c"));
+                allColumn.forEach(col -> words.addAll(Arrays.asList(article.get(col).split(" "))));
 
                 List<Tuple2<String, Integer>> result = new ArrayList<>();
                 words.forEach(w->result.add(new Tuple2<>(w, 1)));
@@ -73,20 +64,19 @@ public class SparkClac {
         JavaPairRDD<Tuple2<String,String>, Double> weightRDD = lines.flatMapToPair(new PairFlatMapFunction<String, Tuple2<String, String>, Double>() {
             public Iterable<Tuple2<Tuple2<String, String>, Double>> call(String line) {
                 Map<String, String> article = LineReader.readRecord(line);
-                String[] abstracts = article.get("des_c").split(" ");
-                String[] titles = article.get("title_c").split(" ");
-                String[] keywords = article.get("keyword_c").split(" ");
-
+                Set<String> allColumn = new HashSet<>(Arrays.asList("des_c","title_c","keyword_c"));
                 List<Tuple2<Tuple2<String, String>, Double>> result = new ArrayList<>();
 
-                calcWeight(abstracts,result);
-                calcWeight(titles,result);
-                calcWeight(keywords,result);
+                allColumn.forEach(column -> calcWeight(article, column, result, allColumn));
 
                 return result;
             }
             // LAR Model
-            private void calcWeight(String[] text,List<Tuple2<Tuple2<String, String>, Double>> result){
+            private void calcWeight(Map<String, String> article,String column,List<Tuple2<Tuple2<String, String>, Double>> result,Set<String> allColumn){
+                String[] text = article.get(column).split(" ");
+                Set<String> otherColumns = new HashSet<>(allColumn);
+                otherColumns.remove(column);
+
                 for (int i = 0; i < text.length; i++) {
                     String curWord = text[i];
 
@@ -103,23 +93,24 @@ public class SparkClac {
                         result.add(new Tuple2<>(new Tuple2<>(curWord, text[j]), weight));
                     }
                     //对于当前词，其与所有其他字段中词语都有关系。 diffCoCount
-                    //this.otherColumnClac(keywords, curWord, result);
-                    //this.otherColumnClac(titles, curWord, result);
+                    otherColumns.forEach(col -> otherColumnClac(article.get(col).split(" "), curWord, text.length, result));
+
                 }
             }
 
-            private void otherColumnClac(String[] keywords, String curWord, List<Tuple2<Tuple2<String, String>, Double>> result) {
-                int curLen = curWord.length();
+            private void otherColumnClac(String[] keywords, String curWord,int curLen, List<Tuple2<Tuple2<String, String>, Double>> result) {
+
+                int otherLen = keywords.length;
 
                 for (String keyword : keywords) {
                     if (curWord.equals(keyword)) {
                         continue;
                     }
-                    int keywordLen = keyword.length();
-                    if (keywordLen == 0) {
+
+                    if (otherLen == 0) {
                         continue;
                     }
-                    double weight = U * Math.pow(E, -U * (M * curLen / keywordLen));
+                    double weight = U * Math.pow(E, -U * (M * curLen / otherLen));
                     result.add(new Tuple2<>(new Tuple2<>(curWord, keyword), weight));
                 }
             }
@@ -128,21 +119,14 @@ public class SparkClac {
         // 统计词语出现次数
         JavaPairRDD<String, Integer> wordCountRDD = lines.flatMapToPair(line -> {
             Map<String, String> article = LineReader.readRecord(line);
-            String[] abstracts = article.get("des_c").split(" ");
-            String[] titles = article.get("title_c").split(" ");
-            String[] keywords = article.get("keyword_c").split(" ");
 
+            Set<String> allColumn = new HashSet<>(Arrays.asList("des_c","title_c","keyword_c"));
+            List<String> allWords = new ArrayList<>();
+
+            allColumn.forEach(col->allWords.addAll(Arrays.asList(article.get(col).split(" "))));
             List<Tuple2<String, Integer>> result = new ArrayList<>();
+            allWords.forEach(word->result.add(new Tuple2<>(word, 1)));
 
-            for (String word : abstracts) {
-                result.add(new Tuple2<>(word, 1));
-            }
-            for (String word : titles) {
-                result.add(new Tuple2<>(word, 1));
-            }
-            for (String word : keywords) {
-                result.add(new Tuple2<>(word, 1));
-            }
             return result;
 
         }).reduceByKey((a, b) -> a + b);
@@ -162,6 +146,8 @@ public class SparkClac {
                 ));
 
         // 计算最终的函数值
+        //return allDataRDD;
+
         return allDataRDD.mapToPair((Tuple2<String,Tuple5<String,Integer,Double,Integer,Integer>> tp)->{
             int pairDocCount = tp._2._2();
             double windowWeight = tp._2._3();
@@ -169,11 +155,11 @@ public class SparkClac {
             int wordDocCount = tp._2._5();
             double result = 0;
             result = windowWeight / wordCount * Math.log10(pairDocCount * 1.0 / wordDocCount + 1);
-            return new Tuple2<>(tp._1(),new Tuple2<>(tp._2._1(),result));
+            return new Tuple2<>(tp._1(),new Tuple6<>(tp._2._1(),tp._2._2(),tp._2._3(),tp._2._4(),tp._2._5(),result));
         }).groupByKey().mapToPair(tp -> {
-                    ArrayList<Tuple2<String, Double>> list = new ArrayList<>();
+                    ArrayList<Tuple6<String,Integer,Double,Integer,Integer,Double>> list = new ArrayList<>();
                     tp._2.forEach(t -> list.add(t));
-                    Collections.sort(list, (a, b) -> ((Double.compare(b._2, a._2))));
+                    Collections.sort(list, (a, b) -> ((Double.compare(b._6(), a._6()))));
                     return new Tuple2<>(tp._1(), list.size() > 100 ? list.subList(0, 100) : list);
                 });
     }
