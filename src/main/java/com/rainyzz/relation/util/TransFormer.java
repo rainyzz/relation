@@ -25,10 +25,82 @@ public class TransFormer {
     public static final String SQL_FILE_OUTPUT_PATH = "D://wanfang.txt";
     public static final String OUTPUT_PATH = "D://standard-all.txt";
 
-    public static void readFromSolr(){
+    static String[] provices = {"北京","天津","上海","重庆","河北","河南","云南","辽宁","黑龙江","湖南","安徽","山东","新疆","江苏","浙江","江西","湖北","广西","甘肃","山西","内蒙","陕西","吉林","福建","贵州","广东","青海 ","西藏","四川","宁夏","海南","台湾","香港","澳门"};
+
+    public static final String WF_OUTPUT_PATH = "D://wf.txt";
+    public static void readWfFromSolr(String path){
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/wanfang");
+
+        File writename = new File(path);
+        BufferedWriter out = null;
+        try {
+            out = new BufferedWriter(new FileWriter(writename));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for(int i = 2000; i <= 2013;i++){
+            SolrQuery query = new SolrQuery("journal_c:计算机 AND author_cn:* AND year:"+i);
+            query.setRows(2 * 10000);
+
+            QueryResponse response = null;
+            try {
+                response = solr.query(query);
+            } catch (SolrServerException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if(response == null){
+                continue;
+            }
+            SolrDocumentList list = response.getResults();
+            try {
+                for(SolrDocument doc:list){
+                    JSONObject jb = new JSONObject(doc);
+                    ifToken("title_cn",jb);
+                    ifToken("abstract_cn",jb);
+                    ifToken("keyword_cn",jb);
+                    jb.remove("journal_c");
+                    jb.remove("title_c");
+                    jb.remove("_version_");
+
+                    boolean flag = false;
+                    if(jb.containsKey("workplace")){
+                        String wk = jb.get("workplace").toString();
+
+                        for(String pro:provices){
+                            if(wk.contains(pro)){
+                                jb.put("workplace", pro);
+                                flag = true;
+                                break;
+                            }
+                        }
+
+                    }
+                    if(flag == false){
+                        continue;
+                    }
+
+                    out.write(jb + "\n");
+                    System.out.println(jb);
+                }
+                out.flush();
+            }catch (IOException e){
+
+            }
+        }
+        try {
+            out.flush();
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void readFromSolr(String path){
         SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/dev");
 
-        File writename = new File(OUTPUT_PATH);
+        File writename = new File(path);
         BufferedWriter out = null;
         try {
             out = new BufferedWriter(new FileWriter(writename));
@@ -55,21 +127,10 @@ public class TransFormer {
             try {
                 for(SolrDocument doc:list){
                     JSONObject jb = new JSONObject(doc);
-                    if(jb.containsKey("title_c")){
-                        jb.put("title_c",token(jb.get("title_c").toString()));
-                    }else{
-                        jb.put("title_c","");
-                    }
-                    if(jb.containsKey("des_c")){
-                        jb.put("des_c",token(jb.get("des_c").toString()));
-                    }else{
-                        jb.put("des_c","");
-                    }
-                    if(jb.containsKey("keyword_c")){
-                        jb.put("keyword_c",token(jb.get("keyword_c").toString()));
-                    }else{
-                        jb.put("keyword_c","");
-                    }
+                    ifToken("title_c",jb);
+                    ifToken("des_c",jb);
+                    ifToken("keyword_c",jb);
+
                     out.write(jb + "\n");
                     System.out.println(jb);
                 }
@@ -84,8 +145,13 @@ public class TransFormer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
+    }
+    private static void ifToken(String col,JSONObject jb){
+        if(jb.containsKey(col)){
+            jb.put(col,token(jb.get(col).toString()));
+        }else{
+            jb.put(col,"");
+        }
     }
 
     private static String token(String s){
@@ -150,6 +216,7 @@ public class TransFormer {
 
 
     public static void main(String[] args){
-        readFromSolr();
+        //readFromSolr(OUTPUT_PATH);
+        readWfFromSolr(WF_OUTPUT_PATH);
     }
 }
