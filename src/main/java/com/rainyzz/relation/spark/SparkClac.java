@@ -21,7 +21,8 @@ public class SparkClac {
     public static final double U = 0.1;
     public static final double M = 0.15;
     public static final int HALF_WINDOW = 2;
-
+    //private static Set<String> allColumn = new HashSet<>(Arrays.asList("des_c","title_c","keyword_c"));
+    private static Set<String> allColumn = new HashSet<>(Arrays.asList("abstract_cn","title_cn","keyword_cn"));
     public static JavaPairRDD calc(JavaRDD<String> lines) {
         // 将输入文件缓存
         lines.cache();
@@ -30,7 +31,6 @@ public class SparkClac {
         JavaPairRDD<Tuple2<String, String>,Integer> pairDocCountRDD = lines.flatMapToPair(line->{
                 Map<String, String> article = LineReader.readRecord(line);
                 Set<String> words = new HashSet<>();
-                Set<String> allColumn = new HashSet<>(Arrays.asList("des_c","title_c","keyword_c"));
                 allColumn.forEach(col -> words.addAll(Arrays.asList(article.get(col).split(" "))));
 
                 List<Tuple2<Tuple2<String, String>,Integer>> result = new ArrayList<>();
@@ -51,7 +51,6 @@ public class SparkClac {
                 Map<String, String> article = LineReader.readRecord(line);
                 Set<String> words = new HashSet<>();
 
-                Set<String> allColumn = new HashSet<>(Arrays.asList("des_c","title_c","keyword_c"));
                 allColumn.forEach(col -> words.addAll(Arrays.asList(article.get(col).split(" "))));
 
                 List<Tuple2<String, Integer>> result = new ArrayList<>();
@@ -64,7 +63,7 @@ public class SparkClac {
         JavaPairRDD<Tuple2<String,String>, Double> weightRDD = lines.flatMapToPair(new PairFlatMapFunction<String, Tuple2<String, String>, Double>() {
             public Iterable<Tuple2<Tuple2<String, String>, Double>> call(String line) {
                 Map<String, String> article = LineReader.readRecord(line);
-                Set<String> allColumn = new HashSet<>(Arrays.asList("des_c","title_c","keyword_c"));
+
                 List<Tuple2<Tuple2<String, String>, Double>> result = new ArrayList<>();
 
                 allColumn.forEach(column -> calcWeight(article, column, result, allColumn));
@@ -119,8 +118,6 @@ public class SparkClac {
         // 统计词语出现次数
         JavaPairRDD<String, Integer> wordCountRDD = lines.flatMapToPair(line -> {
             Map<String, String> article = LineReader.readRecord(line);
-
-            Set<String> allColumn = new HashSet<>(Arrays.asList("des_c","title_c","keyword_c"));
             List<String> allWords = new ArrayList<>();
 
             allColumn.forEach(col->allWords.addAll(Arrays.asList(article.get(col).split(" "))));

@@ -178,43 +178,6 @@ public class TransFormer {
         return tokens;
     }
 
-    public void transform(){
-        File file = new File(SQL_FILE_PATH);
-        BufferedReader reader = null;
-        File writename = new File(SQL_FILE_OUTPUT_PATH);
-        BufferedWriter out = null;
-
-        try {
-            out = new BufferedWriter(new FileWriter(writename));
-            reader = new BufferedReader(new FileReader(file));
-            String line = null;
-            int count = 1;
-
-            while ((line = reader.readLine()) != null) {
-                String newLine = LineWriter.token(LineReader.readRecordToList(line,LineReader.SQL_START,LineReader.SQL_END));
-                out.write(newLine+"\n");
-                System.out.println("line " + count);
-                if(count % 10000 == 0){
-                    out.flush();
-                }
-                count++;
-            }
-            out.flush();
-            out.close();
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e1) {
-                }
-            }
-        }
-    }
-
-
     public static void main(String[] args){
         //readFromSolr(OUTPUT_PATH);
         readWfFromSolr(WF_OUTPUT_PATH);
