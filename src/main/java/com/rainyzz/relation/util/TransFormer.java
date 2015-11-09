@@ -40,7 +40,7 @@ public class TransFormer {
         }
 
         for(int i = 2000; i <= 2013;i++){
-            SolrQuery query = new SolrQuery("journal_c:计算机 AND author_cn:* AND year:"+i);
+            SolrQuery query = new SolrQuery("journal_c:医学 AND author_cn:* AND year:"+i);
             query.setRows(2 * 10000);
 
             QueryResponse response = null;

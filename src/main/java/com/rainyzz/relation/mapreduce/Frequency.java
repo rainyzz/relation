@@ -45,7 +45,7 @@ public class Frequency {
 
         public void map(LongWritable key, Text value, Mapper.Context context) throws IOException, InterruptedException {
             String sentence = value.toString();
-            Map<String,String> article = LineReader.readRecord(sentence, 0, 0);
+            Map<String,String> article = LineReader.readRecord(sentence);
 
             String[] abstracts = article.get("abs").split(" ");
             String[] titles = article.get("title").split(" ");

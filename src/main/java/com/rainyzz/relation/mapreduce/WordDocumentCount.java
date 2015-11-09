@@ -35,7 +35,7 @@ public class WordDocumentCount {
 
         public void map(LongWritable  key, Text value, Mapper.Context context) throws IOException, InterruptedException {
             String sentence = value.toString();
-            Map<String,String> article = LineReader.readRecord(sentence, 0, 0);
+            Map<String,String> article = LineReader.readRecord(sentence);
             Map<String,String> map = Maps.newHashMap();
 
             Set<String> words = new HashSet<String>();

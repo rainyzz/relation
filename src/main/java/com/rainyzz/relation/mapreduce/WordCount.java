@@ -50,7 +50,7 @@ public class WordCount {
 
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             String sentence = value.toString();
-            Map<String, String> article = LineReader.readRecord(sentence, 0, 0);
+            Map<String, String> article = LineReader.readRecord(sentence);
             Set<String> words = new HashSet<String>();
 
             for (String word : Splitter.on(" ").omitEmptyStrings().split(article.get("abs"))) {

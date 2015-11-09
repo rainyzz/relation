@@ -6,36 +6,28 @@ import com.google.common.collect.Sets;
 import org.ansj.domain.Term;
 import org.ansj.splitWord.analysis.ToAnalysis;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by rainystars on 10/23/2015.
  */
 public class ConCalc {
-    public static void calc(List<Map<String, String>> list, Count  wordCount,
+    private static Set<String> allColumn = new HashSet<>(Arrays.asList("abstract_cn", "title_cn", "keyword_cn"));
+    public static final double E = 2.71828182846;
+    public static final double U = 0.1;
+    public static final double M = 0.15;
+    public static final int HALF_WINDOW = 2;
+
+    public static void calcDocNum(Map<String,String> article, Count  wordCount,
                                      Map<Integer,Count> wordCoCount){
-        for(Map<String,String> article:list) {
-            //对于每篇文章，获取其摘要
-            String abs = article.get("title");
-            String keyword = article.get("keyword");
-            List<String> keywords = Splitter.on(",").omitEmptyStrings().splitToList(keyword);
+
+            List<String> words = new ArrayList<>();
+            allColumn.forEach(col-> words.addAll(Arrays.asList(article.get(col).split(" "))));
 
             Set<Integer> localWord = Sets.newHashSet();
-            List<Term> terms = ToAnalysis.parse(abs + keyword);
-            //对于摘要中的文本，统计词语出现次数
-            for (Term term : terms) {
-                /*if(dict.contains(term.getName()) &&
-                        (term.getNatureStr().contains("n") || term.getNatureStr().contains("userDefine"))) {
-                    words.add(term.getName());
-                }*/
-                if(term.getName().length() < 2){
-                    continue;
-                }
-                int index = WordMap.set(term.getName());
-                localWord.add(index);
-            }
+
+            words.forEach(word->localWord.add(WordMap.set(word)));
+
             //更新每个词出现的文档数
             for(Integer word:localWord){
                 wordCount.increase(word,1);
@@ -57,10 +49,62 @@ public class ConCalc {
                 }
                 wordCoCount.put(wordA,map);
             }
+    }
 
+    public static void calcNum(Map<String,String> article, Count  wordCount,
+                                  Map<Integer,Count> wordCoCount){
+
+        List<Integer> words = new ArrayList<>();
+        allColumn.forEach(col-> Arrays.asList(article.get(col).split(" "))
+                        .forEach(word ->
+                                words.add(WordMap.set(word)))
+        );
+        //更新每个词出现的文档数
+        for(Integer word:words){
+            wordCount.increase(word,1);
+        }
+        //通过本篇文章中统计情况，更新全局的词语统计和相关词语统计
+        /*for(Integer wordA : words){
+            Count map = null;
+            if(!wordCoCount.containsKey(wordA)) {
+                map = new Count();
+            }else{
+                map = wordCoCount.get(wordA);
+            }
+            //计算机 wordA以下所有wordB出现的次数
+            for(Integer wordB : words){
+                if(wordA.equals(wordB)){
+                    continue;
+                }
+                map.increase(wordB,1);
+            }
+            wordCoCount.put(wordA,map);
+        }*/
+        for (int i = 0; i < words.size(); i++) {
+            Integer wordA = words.get(i);
+            Count map = null;
+            if (!wordCoCount.containsKey(wordA)) {
+                map = new Count();
+            } else {
+                map = wordCoCount.get(wordA);
+            }
+
+            int windowStart = i - HALF_WINDOW < 0 ? 0 : i - HALF_WINDOW;
+            int windowEnd = i + HALF_WINDOW > words.size() ? words.size() : i + HALF_WINDOW;
+            int windowMid = i;
+
+            //对词窗内的词进行统计 windowWeight
+            for (int j = windowStart; j < windowEnd; j++) {
+                Integer wordB = words.get(j);
+                if (wordA.equals(wordB)) {
+                    continue;
+                }
+                map.increase(wordB, 1);
+            }
+            wordCoCount.put(wordA,map);
         }
     }
-    public static Map<Integer,Count>  update(Count wordCount, Map<Integer,Count> wordCoCount){
+    public static Map<Integer,Count> update(Count wordCount, Map<Integer,Count> wordCoCount){
         Map<Integer,Count> res = Maps.newHashMap();
 
         for(Integer wordA:wordCoCount.keySet()){
