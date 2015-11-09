@@ -135,30 +135,30 @@ public class SparkClac {
         JavaPairRDD<String, Tuple5<String,Integer,Double,Integer,Integer>> allDataRDD =
                 pairDocCountRDD.join(weightRDD).mapToPair(
                         (Tuple2<Tuple2<String,String>,Tuple2<Integer, Double>> tp) ->
-                             new Tuple2<>(tp._1()._1(), new Tuple3<>(tp._1()._2(), tp._2()._1, tp._2._2())))
+                             new Tuple2<>(tp._1()._1(), new Tuple3<>(tp._1()._2(), tp._2()._1(), tp._2()._2())))
                 .join(wordDocCountRDD)
                 .join(wordCountRDD).mapToPair(tp -> new Tuple2<>(
                         tp._1(), new Tuple5<>(tp._2()._1()._1()._1(),
-                        tp._2._1()._1()._2(),
-                        tp._2._1()._1()._3(),
-                        tp._2._2(),
-                        tp._2._1._2)
+                        tp._2()._1()._1()._2(),
+                        tp._2()._1()._1()._3(),
+                        tp._2()._2(),
+                        tp._2()._1()._2())
                 ));
 
         // 计算最终的函数值
         //return allDataRDD;
 
         return allDataRDD.mapToPair((Tuple2<String,Tuple5<String,Integer,Double,Integer,Integer>> tp)->{
-            int pairDocCount = tp._2._2();
-            double windowWeight = tp._2._3();
-            int wordCount = tp._2._4();
-            int wordDocCount = tp._2._5();
+            int pairDocCount = tp._2()._2();
+            double windowWeight = tp._2()._3();
+            int wordCount = tp._2()._4();
+            int wordDocCount = tp._2()._5();
             double result = 0;
             result = windowWeight / wordCount * Math.log10(pairDocCount * 1.0 / wordDocCount + 1);
-            return new Tuple2<>(tp._1(),new Tuple6<>(tp._2._1(),tp._2._2(),tp._2._3(),tp._2._4(),tp._2._5(),result));
+            return new Tuple2<>(tp._1(),new Tuple6<>(tp._2()._1(),tp._2()._2(),tp._2()._3(),tp._2()._4(),tp._2()._5(),result));
         }).groupByKey().mapToPair(tp -> {
                     ArrayList<Tuple6<String,Integer,Double,Integer,Integer,Double>> list = new ArrayList<>();
-                    tp._2.forEach(t -> list.add(t));
+                    tp._2().forEach(t -> list.add(t));
                     Collections.sort(list, (a, b) -> ((Double.compare(b._6(), a._6()))));
                     return new Tuple2<>(tp._1(), list.size() > 100 ? list.subList(0, 100) : list);
                 });

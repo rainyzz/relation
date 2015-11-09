@@ -23,51 +23,66 @@ import java.util.List;
 public class TransFormer {
     public static final String SQL_FILE_PATH = "C:\\Users\\rainystars\\Desktop\\wanfang_detail.sql";
     public static final String SQL_FILE_OUTPUT_PATH = "D://wanfang.txt";
-    public static final String OUTPUT_PATH = "D://standard.txt";
+    public static final String OUTPUT_PATH = "D://standard-all.txt";
 
     public static void readFromSolr(){
         SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/dev");
-        SolrQuery query = new SolrQuery("A104:CN-GB");
-        query.setRows(60000);
 
-        QueryResponse response = null;
+        File writename = new File(OUTPUT_PATH);
+        BufferedWriter out = null;
         try {
-            response = solr.query(query);
-        } catch (SolrServerException e) {
-            e.printStackTrace();
+            out = new BufferedWriter(new FileWriter(writename));
         } catch (IOException e) {
             e.printStackTrace();
         }
-        if(response == null){
-            return;
-        }
-        SolrDocumentList list = response.getResults();
-        File writename = new File(OUTPUT_PATH);
-        BufferedWriter out = null;
 
-        try {
-            out = new BufferedWriter(new FileWriter(writename));
+        for(int i = 1915; i <= 2015;i++){
+            SolrQuery query = new SolrQuery("A101_year_s:"+i);
+            query.setRows(10 * 10000);
 
-            for(SolrDocument doc:list){
-
-                JSONObject jb = new JSONObject(doc);
-                if(jb.containsKey("title_c")){
-                    jb.put("title_c",token(jb.get("title_c").toString()));
-                }
-                if(jb.containsKey("des_c")){
-                    jb.put("des_c",token(jb.get("des_c").toString()));
-                }
-                if(jb.containsKey("keyword_c")){
-                    jb.put("keyword_c",token(jb.get("keyword_c").toString()));
-                }
-                out.write(jb + "\n");
-                System.out.println(jb);
-                //break;
+            QueryResponse response = null;
+            try {
+                response = solr.query(query);
+            } catch (SolrServerException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            if(response == null){
+                continue;
+            }
+            SolrDocumentList list = response.getResults();
+            try {
+                for(SolrDocument doc:list){
+                    JSONObject jb = new JSONObject(doc);
+                    if(jb.containsKey("title_c")){
+                        jb.put("title_c",token(jb.get("title_c").toString()));
+                    }else{
+                        jb.put("title_c","");
+                    }
+                    if(jb.containsKey("des_c")){
+                        jb.put("des_c",token(jb.get("des_c").toString()));
+                    }else{
+                        jb.put("des_c","");
+                    }
+                    if(jb.containsKey("keyword_c")){
+                        jb.put("keyword_c",token(jb.get("keyword_c").toString()));
+                    }else{
+                        jb.put("keyword_c","");
+                    }
+                    out.write(jb + "\n");
+                    System.out.println(jb);
+                }
+                out.flush();
+            }catch (IOException e){
+
+            }
+        }
+        try {
             out.flush();
             out.close();
-        }catch (IOException e){
-
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
 
