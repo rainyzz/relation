@@ -13,9 +13,7 @@ import java.util.*;
  */
 public class ConCalc {
     private static Set<String> allColumn = new HashSet<>(Arrays.asList("abstract_cn", "title_cn", "keyword_cn"));
-    public static final double E = 2.71828182846;
-    public static final double U = 0.1;
-    public static final double M = 0.15;
+
     public static final int HALF_WINDOW = 2;
 
     public static void calcDocNum(Map<String,String> article, Count  wordCount,
@@ -55,10 +53,23 @@ public class ConCalc {
                                   Map<Integer,Count> wordCoCount){
 
         List<Integer> words = new ArrayList<>();
-        allColumn.forEach(col-> Arrays.asList(article.get(col).split(" "))
+        StringBuffer sb = new StringBuffer();
+        allColumn.forEach(col-> Arrays.asList(sb.append(article.get(col)).append(" ")));
+
+        /*allColumn.forEach(col-> Arrays.asList(article.get(col).split(" "))
                         .forEach(word ->
                                 words.add(WordMap.set(word)))
-        );
+        );*/
+        List<Term> terms = ToAnalysis.parse(sb.toString());
+        terms.forEach(term->{
+            if(term.getNatureStr().contains("n") || term.getNatureStr().contains("v")){
+                if(!term.getName().equals(" ")){
+                    words.add(WordMap.set(term.getName()));
+                }
+            }
+            //System.out.println(term);
+        });
+
         //更新每个词出现的文档数
         for(Integer word:words){
             wordCount.increase(word,1);

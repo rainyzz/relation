@@ -23,8 +23,8 @@ public class Run {
     public static final int START_YEAR = 2012;
     public static final int END_YEAR = 2013;
 
-    public static final String INPUT_PTAH = "D:\\spark\\wf-computer.txt";
-    public static final String OUTPUT_PTAH = "D:\\spark\\output-num.txt";
+    public static final String INPUT_PTAH = "D:\\spark\\wf-med.txt";
+    public static final String OUTPUT_PTAH = "D:\\spark\\output-med.txt";
 
     public static void calcPossiblity(){
         UserDefineLibrary.loadLibrary(UserDefineLibrary.FOREST,LIBRARY_PTAH);
