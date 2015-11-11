@@ -1,6 +1,9 @@
 package com.rainyzz.relation.spark;
 
+import com.rainyzz.relation.core.WordMap;
 import com.rainyzz.relation.util.LineReader;
+import org.ansj.domain.Term;
+import org.ansj.splitWord.analysis.ToAnalysis;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -31,7 +34,19 @@ public class SparkClac {
         JavaPairRDD<Tuple2<String, String>,Integer> pairDocCountRDD = lines.flatMapToPair(line->{
                 Map<String, String> article = LineReader.readRecord(line);
                 Set<String> words = new HashSet<>();
-                allColumn.forEach(col -> words.addAll(Arrays.asList(article.get(col).split(" "))));
+
+                //allColumn.forEach(col -> words.addAll(Arrays.asList(article.get(col).split(" "))));
+                    StringBuffer sb = new StringBuffer();
+                    allColumn.forEach(col-> Arrays.asList(sb.append(article.get(col)).append(" ")));
+                    List<Term> terms = ToAnalysis.parse(sb.toString());
+                    terms.forEach(term->{
+                        if(term.getNatureStr().contains("n") || term.getNatureStr().contains("v")){
+                            if(!term.getName().equals(" ")){
+                                words.add(term.getName());
+                            }
+                        }
+                        //System.out.println(term);
+                    });
 
                 List<Tuple2<Tuple2<String, String>,Integer>> result = new ArrayList<>();
                 for (String wordA : words) {
@@ -51,7 +66,18 @@ public class SparkClac {
                 Map<String, String> article = LineReader.readRecord(line);
                 Set<String> words = new HashSet<>();
 
-                allColumn.forEach(col -> words.addAll(Arrays.asList(article.get(col).split(" "))));
+                //allColumn.forEach(col -> words.addAll(Arrays.asList(article.get(col).split(" "))));
+                StringBuffer sb = new StringBuffer();
+                allColumn.forEach(col-> Arrays.asList(sb.append(article.get(col)).append(" ")));
+                List<Term> terms = ToAnalysis.parse(sb.toString());
+                terms.forEach(term->{
+                    if(term.getNatureStr().contains("n") || term.getNatureStr().contains("v")){
+                        if(!term.getName().equals(" ")){
+                            words.add(term.getName());
+                        }
+                    }
+                    //System.out.println(term);
+                });
 
                 List<Tuple2<String, Integer>> result = new ArrayList<>();
                 words.forEach(w->result.add(new Tuple2<>(w, 1)));

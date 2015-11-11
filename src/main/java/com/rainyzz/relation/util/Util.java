@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -12,6 +13,8 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.rainyzz.relation.spark.SparkClac;
+import org.apache.spark.api.java.JavaRDD;
 
 public class Util {
 
@@ -100,13 +103,41 @@ public class Util {
 		fw.close();
 	}
 
+	public static List<File> getListFiles(Object obj) {
+		File directory = null;
+		if (obj instanceof File) {
+			directory = (File) obj;
+		} else {
+			directory = new File(obj.toString());
+		}
+		ArrayList<File> files = new ArrayList<>();
+		if (directory.isFile()) {
+			files.add(directory);
+			return files;
+		} else if (directory.isDirectory()) {
+			File[] fileArr = directory.listFiles();
+			for (int i = 0; i < fileArr.length; i++) {
+				File fileOne = fileArr[i];
+				files.addAll(getListFiles(fileOne));
+			}
+		}
+		return files;
+	}
 	public static void main(String[] args)  {
 		/*try {
 			com.rainyzz.relation.util.Util.mergeBaikeAndKeyword();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}*/
-		Util.transKeywordToDic();
+		//Util.transKeywordToDic();
+		List<File> files = getListFiles("/Users/rainystars/Downloads/wf-computer2/");
+		//String outputDir = args[1];
+		for(File f:files){
+			if(f.getName().startsWith(".")){
+				continue;
+			}
+			System.out.println("/Users/rainystars/Downloads/wf-computer2/"+"/"+f.getName());
+		}
 
 	}
 
