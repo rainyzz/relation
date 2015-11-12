@@ -15,7 +15,9 @@ import org.apache.solr.common.SolrDocumentList;
 
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by rainystars on 10/26/2015.
@@ -27,7 +29,7 @@ public class TransFormer {
 
     static String[] provices = {"北京","天津","上海","重庆","河北","河南","云南","辽宁","黑龙江","湖南","安徽","山东","新疆","江苏","浙江","江西","湖北","广西","甘肃","山西","内蒙","陕西","吉林","福建","贵州","广东","青海 ","西藏","四川","宁夏","海南","台湾","香港","澳门"};
 
-    public static final String WF_OUTPUT_PATH = "D://wf.txt";
+    public static final String WF_OUTPUT_PATH = "D:\\wf_agri\\";
     public static void readWfFromSolr(String path){
         SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/wanfang");
 
@@ -40,8 +42,9 @@ public class TransFormer {
         }
 
         for(int i = 2000; i <= 2013;i++){
-            SolrQuery query = new SolrQuery("journal_c:医学 AND author_cn:* AND year:"+i);
-            query.setRows(2 * 10000);
+            SolrQuery query = new SolrQuery("code1:R AND author_cn:* AND year:"+i);
+
+            query.setRows(5 * 10000);
 
             QueryResponse response = null;
             try {
@@ -95,6 +98,88 @@ public class TransFormer {
             out.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+    public static void readWfSplitterFromSolr(String path){
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/wanfang");
+
+       /* File writename = new File(path);
+        *//*BufferedWriter out = null;
+        try {
+            out = new BufferedWriter(new FileWriter(writename));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }*/
+
+        for(int i = 2000; i <= 2013;i++){
+            SolrQuery query = new SolrQuery("code1:S AND author_cn:* AND year:"+i);
+            Map<String,BufferedWriter> writerMap = new HashMap<>();
+            for(String pro :provices){
+                BufferedWriter o = null;
+                String outName = pro+"#"+i;
+                try {
+                    o = new BufferedWriter(new FileWriter(new File(path+outName)));
+                    writerMap.put(outName,o);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            query.setRows(10 * 10000);
+
+            QueryResponse response = null;
+            try {
+                response = solr.query(query);
+            } catch (SolrServerException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if(response == null){
+                continue;
+            }
+            SolrDocumentList list = response.getResults();
+            try {
+                for(SolrDocument doc:list){
+                    JSONObject jb = new JSONObject(doc);
+                    ifToken("title_cn",jb);
+                    ifToken("abstract_cn",jb);
+                    ifToken("keyword_cn",jb);
+                    jb.remove("journal_c");
+                    jb.remove("title_c");
+                    jb.remove("_version_");
+
+                    boolean flag = false;
+                    BufferedWriter o = null;
+                    if(jb.containsKey("workplace")){
+                        String wk = jb.get("workplace").toString();
+
+                        for(String pro:provices){
+                            if(wk.contains(pro)){
+                                jb.put("workplace", pro);
+                                flag = true;
+                                o =writerMap.get(pro+"#"+i);
+                                break;
+                            }
+                        }
+
+                    }
+                    if(flag == false){
+                        continue;
+                    }
+                    if (o != null){
+                        o.write(jb + "\n");
+                    }
+                    System.out.println(jb);
+                }
+                for(String key:writerMap.keySet()){
+                    BufferedWriter o = writerMap.get(key);
+                    o.flush();
+                    o.close();
+                }
+            }catch (IOException e){
+
+            }
         }
     }
     public static void readFromSolr(String path){
@@ -180,6 +265,6 @@ public class TransFormer {
 
     public static void main(String[] args){
         //readFromSolr(OUTPUT_PATH);
-        readWfFromSolr(WF_OUTPUT_PATH);
+        readWfSplitterFromSolr(WF_OUTPUT_PATH);
     }
 }
