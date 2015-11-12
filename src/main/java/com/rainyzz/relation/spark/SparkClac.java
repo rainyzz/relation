@@ -177,7 +177,7 @@ public class SparkClac {
             int wordCount = tp._2()._4();
             int wordDocCount = tp._2()._5();
             double result = 0;
-            result = windowWeight / wordCount * Math.log10(pairDocCount * 1.0 / wordDocCount + 1);
+            result = windowWeight / wordCount * (Math.log(pairDocCount * 1.0 / wordDocCount + 1) / Math.log(2));
             return new Tuple2<>(tp._1(),new Tuple6<>(tp._2()._1(),tp._2()._2(),tp._2()._3(),tp._2()._4(),tp._2()._5(),result));
         }).groupByKey().mapToPair(tp -> {
                     ArrayList<Tuple6<String,Integer,Double,Integer,Integer,Double>> list = new ArrayList<>();
