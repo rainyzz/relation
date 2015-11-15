@@ -64,6 +64,16 @@ public class ResWriter {
         }
         return res;
     }
+    private static List<String> trans(int mainWord,List<Map.Entry> list,Count wordTotalCount, Count wordCount, Map<Integer,Count> wordCoCount){
+        List<String> res = Lists.newArrayList();
+        for(Map.Entry<Integer,Double> entry:list){
+            int index = entry.getKey();
+            res.add(WordMap.get(index) +","+ wordCount.get(mainWord)+":"+wordTotalCount.get(mainWord) +":"
+                    +wordCoCount.get(mainWord).get(index)+ ":" + ":" + entry.getValue());
+        }
+        return res;
+    }
+
 
     public static void writeResult(Map<Integer,Count> frenquecy,String filename){
 
@@ -74,6 +84,22 @@ public class ResWriter {
                 Count map = frenquecy.get(index);
                 List<Map.Entry> list = map.sort();
                 fw.write(WordMap.get(index) + ": " + trans(list) +"\n");
+            }
+            fw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void writeResult(Map<Integer,Count> frenquecy,Count wordTotalCount, Count wordCount, Map<Integer,Count> wordCoCount,String filename){
+
+        try {
+            FileWriter fw = new FileWriter(new File(filename));
+            for(Integer index:frenquecy.keySet()){
+
+                Count map = frenquecy.get(index);
+                List<Map.Entry> list = map.sort();
+
+                fw.write(WordMap.get(index) + ": " + trans(index,list,wordTotalCount,wordCount, wordCoCount) +"\n");
             }
             fw.close();
         } catch (IOException e) {

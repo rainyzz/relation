@@ -87,7 +87,8 @@ public class Run {
         System.out.println("wordCount size: " + wordCount.size());
         System.out.println("wordCoCount size: " + wordCoCount.size());
         MyClac.update(frenquecy,wordTotalCount,wordCount, wordCoCount);
-        ResWriter.writeResult(frenquecy, OUTPUT_PTAH);
+        //ResWriter.writeResult(frenquecy, OUTPUT_PTAH);
+        ResWriter.writeResult(frenquecy,wordTotalCount,wordCount, wordCoCount, OUTPUT_PTAH);
             //writeToSolr(frenquecy,year);
 
     }
