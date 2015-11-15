@@ -24,6 +24,7 @@ import java.util.*;
  */
 public class Filter {
     public static Set<String> dict = null;
+    private static final int TOTAL = 8;
     public static final String BUILD_LIBRARY_PTAH = "C:\\Users\\rainystars\\Desktop\\relation\\final.txt";
     public static final String STOPWORDS_PTAH = "stopwords.txt";
     public static void buildDict(){
@@ -59,14 +60,14 @@ public class Filter {
     }
 
     public static void calcTypeWords(){
-        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/dev");
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/filter");
         SolrQuery query = new SolrQuery("*:*");
         query.setFacet(true);
         query.set("stats", true);
         query.setRows(0);
         query.set("stats.field", "{!tag=piv1}id");
-        query.set("facet.pivot", "{!stats=piv1}A825_1_m,title_c");
-        query.setFacetLimit(50);
+        query.set("facet.pivot", "{!stats=piv1}code1,text");
+        query.setFacetLimit(200);
         QueryResponse response = null;
         try {
             response = solr.query(query);
@@ -76,7 +77,7 @@ public class Filter {
             e.printStackTrace();
         }
         if(response != null){
-            processPivots(response,"A825_1_m","title_c");
+            processPivots(response,"code1","text");
         }
     }
     private static Set<String> stopwords = null;
@@ -141,7 +142,16 @@ public class Filter {
                         .compareTo(((Map.Entry) (o2)).getValue());
             }
         });
-        System.out.println(finalTopList);
+
+        for(Map.Entry<String,Long> entry:finalTopList){
+            long v = entry.getValue();
+            if(v == 1){
+                continue;
+            }
+            System.out.println(entry.getKey()+"-"+ v * 1.0 / TOTAL );
+
+        }
+        //System.out.println(finalTopList);
     }
 
     public static void main(String[] args){
