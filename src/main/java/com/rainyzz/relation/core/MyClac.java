@@ -85,10 +85,11 @@ public class MyClac
                     }
 
                     //对于当前词，其与所有其他字段中词语都有关系。 diffCoCount
+                    int curLen = text.length;
                     for(String otherCol:otherColumns){
-                        int curLen = article.get(column).length();
-                        int keywordLen = article.get(otherCol).length();
-                        String[] keywords = article.get(column).split(" ");
+
+                        String[] keywords = article.get(otherCol).split(" ");
+                        int keywordLen = keywords.length;
 
                         for(String key:keywords){
                             if(word.equals(key)|| !words.contains(key)){
@@ -131,6 +132,7 @@ public class MyClac
     }
 
     public static void update(Map<Integer,Count> frenquecy,Count wordTotalCount, Count wordCount, Map<Integer,Count> wordCoCount){
+
 
         Set<Integer> set = new HashSet(frenquecy.keySet());
         for(int wordA:set){
