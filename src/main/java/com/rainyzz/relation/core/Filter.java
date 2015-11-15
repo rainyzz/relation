@@ -61,12 +61,12 @@ public class Filter {
 
     public static void calcTypeWords(){
         SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/filter");
-        SolrQuery query = new SolrQuery("*:*");
+        SolrQuery query = new SolrQuery("code1:T");
         query.setFacet(true);
         query.set("stats", true);
         query.setRows(0);
         query.set("stats.field", "{!tag=piv1}id");
-        query.set("facet.pivot", "{!stats=piv1}code1,text");
+        query.set("facet.pivot", "{!stats=piv1}code2,text");
         query.setFacetLimit(200);
         QueryResponse response = null;
         try {
@@ -77,7 +77,7 @@ public class Filter {
             e.printStackTrace();
         }
         if(response != null){
-            processPivots(response,"code1","text");
+            processPivots(response,"code2","text");
         }
     }
     private static Set<String> stopwords = null;
