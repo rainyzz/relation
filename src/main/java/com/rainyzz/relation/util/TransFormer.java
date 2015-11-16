@@ -25,7 +25,7 @@ import java.util.Map;
 public class TransFormer {
     public static final String SQL_FILE_PATH = "C:\\Users\\rainystars\\Desktop\\wanfang_detail.sql";
     public static final String SQL_FILE_OUTPUT_PATH = "D://wanfang.txt";
-    public static final String OUTPUT_PATH = "D://standard-all.txt";
+    public static final String OUTPUT_PATH = "D://argi-all.txt";
 
     static String[] provices = {"北京","天津","上海","重庆","河北","河南","云南","辽宁","黑龙江","湖南","安徽","山东","新疆","江苏","浙江","江西","湖北","广西","甘肃","山西","内蒙","陕西","吉林","福建","贵州","广东","青海 ","西藏","四川","宁夏","海南","台湾","香港","澳门"};
 
@@ -42,9 +42,9 @@ public class TransFormer {
         }
 
         for(int i = 2000; i <= 2013;i++){
-            SolrQuery query = new SolrQuery("code1:R AND author_cn:* AND year:"+i);
+            SolrQuery query = new SolrQuery("code1:S AND author_cn:* AND year:"+i);
 
-            query.setRows(5 * 10000);
+            query.setRows(10 * 10000);
 
             QueryResponse response = null;
             try {
@@ -112,7 +112,7 @@ public class TransFormer {
         }*/
 
         for(int i = 2000; i <= 2013;i++){
-            SolrQuery query = new SolrQuery("code1:S AND author_cn:* AND year:"+i);
+            SolrQuery query = new SolrQuery("code2:T.TP AND author_cn:* AND year:"+i);
             Map<String,BufferedWriter> writerMap = new HashMap<>();
             for(String pro :provices){
                 BufferedWriter o = null;
@@ -264,7 +264,7 @@ public class TransFormer {
     }
 
     public static void main(String[] args){
-        //readFromSolr(OUTPUT_PATH);
-        readWfSplitterFromSolr(WF_OUTPUT_PATH);
+        readWfFromSolr(OUTPUT_PATH);
+        //readWfSplitterFromSolr(WF_OUTPUT_PATH);
     }
 }
