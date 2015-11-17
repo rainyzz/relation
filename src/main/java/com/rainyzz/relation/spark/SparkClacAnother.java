@@ -41,7 +41,7 @@ public class SparkClacAnother {
                 List<Term> terms = ToAnalysis.parse(sb.toString());
                 terms.forEach(term -> {
                     if (term.getNatureStr().contains("n") || term.getNatureStr().contains("v")) {
-                        if (!term.getName().equals(" ")) {
+                        if (!term.getName().equals(" ") && !filterSet.contains(term.getName()) && term.getName().length() > 1) {
                             words.add(term.getName());
                         }
                     }
@@ -66,7 +66,11 @@ public class SparkClacAnother {
 
                 // 统计词语出现次数
                 allColumn.forEach(col->allWords.addAll(Arrays.asList(article.get(col).split(" "))));
-                allWords.forEach(word->result.add(new Tuple2<>(word,new Tuple2<>("#",1.0))));
+                allWords.forEach(word->{
+                    if(words.contains(word)){
+                        result.add(new Tuple2<>(word,new Tuple2<>("#",1.0)));
+                    }
+                });
 
                 return result;
             }
@@ -104,7 +108,7 @@ public class SparkClacAnother {
                 int otherLen = keywords.length;
 
                 for (String keyword : keywords) {
-                    if (curWord.equals(keyword)) {
+                    if (curWord.equals(keyword) || filterSet.contains(keyword)) {
                         continue;
                     }
 
@@ -117,7 +121,7 @@ public class SparkClacAnother {
             }
         });
 
-        JavaPairRDD<String, Tuple2<String,Double>> finalRDD = allRDD.groupByKey().flatMapToPair(tp->{
+        JavaPairRDD<String, Iterable<Tuple2<String,Double>>> finalRDD = allRDD.groupByKey().mapToPair(tp->{
             String wordA = tp._1();
             Iterable<Tuple2<String,Double>> data = tp._2();
             double wordCount = 0;
@@ -166,7 +170,7 @@ public class SparkClacAnother {
                         break;
                 }
             }
-            List<Tuple2<String,Tuple2<String,Double>>> result = new ArrayList<>();
+            List<Tuple2<String,Double>> result = new ArrayList<>();
             for(String key:pairDocCount.keySet()){
                 double pairCount = pairDocCount.get(key);
                 if(!windowWeight.containsKey(key)){
@@ -175,9 +179,10 @@ public class SparkClacAnother {
                 double winWeight = windowWeight.get(key);
                 double weight = 0;
                 weight = winWeight / wordCount * (Math.log(pairCount * 1.0 / wordDocCount + 1) / Math.log(2));
-                result.add(new Tuple2<>(key,new Tuple2<>(key,weight)));
+                result.add(new Tuple2<>(key,weight));
             }
-            return result;
+            Collections.sort(result, (a, b) -> ((Double.compare(b._2(), a._2()))));
+            return new Tuple2<>(wordA,result.size() > 100 ? result.subList(0, 100) : result);
 
         });
 
