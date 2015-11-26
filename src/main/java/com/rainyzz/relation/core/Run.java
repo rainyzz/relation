@@ -20,8 +20,8 @@ public class Run {
     public static final int START_YEAR = 2012;
     public static final int END_YEAR = 2013;
 
-    public static final String INPUT_PTAH = "D:\\wf-computer\\北京#2013";
-    public static final String OUTPUT_PTAH = "D:\\output-com.txt";
+    public static final String INPUT_PTAH = "D:\\毕业设计测试数据\\agriculture-70w.txt";
+    public static final String OUTPUT_PTAH = "D:\\output-agriculture.txt";
 
     public static void calcPossiblity(){
         UserDefineLibrary.loadLibrary(UserDefineLibrary.FOREST,LIBRARY_PTAH);
@@ -94,7 +94,7 @@ public class Run {
     }
 
     public static void main(String[] args){
-        calc();
-        //calcPossiblity();
+        //calc();
+        calcPossiblity();
     }
 }

@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -101,6 +102,20 @@ public class Util {
 			fw.write(word+"\n");
 		}
 		fw.close();
+	}
+	public static List<File> getDirList(Object obj) {
+		File directory = null;
+		if (obj instanceof File) {
+			directory = (File) obj;
+		} else {
+			directory = new File(obj.toString());
+		}
+		List<File> files = new ArrayList<>();
+		if (directory.isDirectory()) {
+			File[] fileArr = directory.listFiles();
+			files.addAll(Arrays.asList(fileArr));
+		}
+		return files;
 	}
 
 	public static List<File> getListFiles(Object obj) {

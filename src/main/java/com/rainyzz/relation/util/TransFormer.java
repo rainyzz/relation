@@ -25,11 +25,14 @@ import java.util.Map;
 public class TransFormer {
     public static final String SQL_FILE_PATH = "C:\\Users\\rainystars\\Desktop\\wanfang_detail.sql";
     public static final String SQL_FILE_OUTPUT_PATH = "D://wanfang.txt";
-    public static final String OUTPUT_PATH = "D://argi-all.txt";
+
 
     static String[] provices = {"北京","天津","上海","重庆","河北","河南","云南","辽宁","黑龙江","湖南","安徽","山东","新疆","江苏","浙江","江西","湖北","广西","甘肃","山西","内蒙","陕西","吉林","福建","贵州","广东","青海 ","西藏","四川","宁夏","海南","台湾","香港","澳门"};
 
-    public static final String WF_OUTPUT_PATH = "D:\\wf_agri\\";
+    public static final String SINGLE_OUTPUT_PATH = "D://industry.txt";
+    public static final String SPLIT_OUTPUT_PATH = "D:\\industry_split\\";
+    public static final String ALL_SPLIT_OUTPUT_PATH = "D:\\all_split\\";
+    private static String codeQuery ="code2:T.TB";
     public static void readWfFromSolr(String path){
         SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/wanfang");
 
@@ -42,7 +45,7 @@ public class TransFormer {
         }
 
         for(int i = 2000; i <= 2013;i++){
-            SolrQuery query = new SolrQuery("code1:S AND author_cn:* AND year:"+i);
+            SolrQuery query = new SolrQuery(codeQuery+" AND author_cn:* AND year:"+i);
 
             query.setRows(10 * 10000);
 
@@ -100,19 +103,93 @@ public class TransFormer {
             e.printStackTrace();
         }
     }
+    public static void readAllWfSplitterFromSolr(String path){
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/wanfang");
+        String[] codes = {"R.RT","N.NT","R.R4","R.R1","R.R2","T.TP","T.TU","N.NP","T.TZ","R.RA","S.ST","T.TQ","N.NA","T.TN","R.R9","R.R6","T.TH","R.R5","T.TA","T.TM","S.S8","R.R3","T.TD","T.TX","T.TS","T.TV","T.TG","R.R16","N.NQ","N.N04","N.N06","T.TB","R.R76","R.R8","S.S2","R.R74","N.N01","T.TE","R.R71","S.S6","R.R73","T.TF","S.S7","T.TJ","T.TK","S.S1","T.TY","S.S5","F.F4","S.SA","C.C91","S.S3","N.N03","R.R75","S.S4","G.GA","S.S9","F.F3","T.TL","G.G4","F.F2","B.BD9","G.G21","G.G25","C.C913","G.GJ","C.CA","G.G3","F.F0","F.FA","C.C97","B.BD","C.CK0"};
+
+        for(int year = 2000; year <= 2013;year++){
+            Map<String,BufferedWriter> writerMap = new HashMap<>();
+            for(String pro :provices){
+                BufferedWriter o = null;
+                String outName = pro+"#"+year;
+                try {
+                    o = new BufferedWriter(new FileWriter(new File(path+outName)));
+                    writerMap.put(outName,o);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            for (String code:codes){
+                SolrQuery query = new SolrQuery("code2:"+code+" AND author_cn:* AND year:"+year);
+                query.setRows(10 * 10000);
+
+                QueryResponse response = null;
+                try {
+                    response = solr.query(query);
+                } catch (SolrServerException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if(response == null){
+                    continue;
+                }
+                SolrDocumentList list = response.getResults();
+                try {
+                    for(SolrDocument doc:list){
+                        JSONObject jb = new JSONObject(doc);
+                        ifToken("title_cn",jb);
+                        ifToken("abstract_cn",jb);
+                        ifToken("keyword_cn",jb);
+                        jb.remove("journal_c");
+                        jb.remove("title_c");
+                        jb.remove("_version_");
+
+                        boolean flag = false;
+                        BufferedWriter o = null;
+                        if(jb.containsKey("workplace")){
+                            String wk = jb.get("workplace").toString();
+
+                            for(String pro:provices){
+                                if(wk.contains(pro)){
+                                    jb.put("workplace", pro);
+                                    flag = true;
+                                    o =writerMap.get(pro+"#"+year);
+                                    break;
+                                }
+                            }
+
+                        }
+                        if(flag == false){
+                            continue;
+                        }
+                        if (o != null){
+                            o.write(jb + "\n");
+                        }
+                        System.out.println(jb);
+                    }
+
+                }catch (IOException e){
+
+                }
+            }
+            try {
+                for(String key:writerMap.keySet()){
+                    BufferedWriter o = writerMap.get(key);
+                    o.flush();
+                    o.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
     public static void readWfSplitterFromSolr(String path){
         SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/wanfang");
 
-       /* File writename = new File(path);
-        *//*BufferedWriter out = null;
-        try {
-            out = new BufferedWriter(new FileWriter(writename));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
-
         for(int i = 2000; i <= 2013;i++){
-            SolrQuery query = new SolrQuery("code2:T.TP AND author_cn:* AND year:"+i);
+            SolrQuery query = new SolrQuery(codeQuery+" AND author_cn:* AND year:"+i);
             Map<String,BufferedWriter> writerMap = new HashMap<>();
             for(String pro :provices){
                 BufferedWriter o = null;
@@ -264,7 +341,8 @@ public class TransFormer {
     }
 
     public static void main(String[] args){
-        readWfFromSolr(OUTPUT_PATH);
-        //readWfSplitterFromSolr(WF_OUTPUT_PATH);
+        //readWfFromSolr(SINGLE_OUTPUT_PATH);
+        //readWfSplitterFromSolr(SPLIT_OUTPUT_PATH);
+        readAllWfSplitterFromSolr(ALL_SPLIT_OUTPUT_PATH);
     }
 }
