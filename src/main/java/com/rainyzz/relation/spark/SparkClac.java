@@ -32,7 +32,8 @@ public class SparkClac {
     public static Set<String> filterSet = new HashSet<>(Arrays.asList(filterWords));
     private static Set<String> allColumn = new HashSet<>(Arrays.asList("abstract_cn","title_cn","keyword_cn"));
 
-    private static Set<String> getWords(List<Term> terms){
+    private static Set<String> getWords(String line){
+        List<Term> terms = ToAnalysis.parse(line);
         Set<String> words = new HashSet<>();
         terms.forEach(term-> {
             if (FILTER_FLAG) {
@@ -61,8 +62,8 @@ public class SparkClac {
 
                 StringBuffer sb = new StringBuffer();
                 allColumn.forEach(col-> Arrays.asList(sb.append(article.get(col)).append(" ")));
-                List<Term> terms = ToAnalysis.parse(sb.toString());
-                Set<String> words = getWords(terms);
+                //List<Term> terms = ToAnalysis.parse(sb.toString());
+                Set<String> words = getWords(sb.toString());
 
                 List<Tuple2<Tuple2<String, String>,Integer>> result = new ArrayList<>();
                 for (String wordA : words) {
@@ -83,8 +84,8 @@ public class SparkClac {
 
                 StringBuffer sb = new StringBuffer();
                 allColumn.forEach(col-> Arrays.asList(sb.append(article.get(col)).append(" ")));
-                List<Term> terms = ToAnalysis.parse(sb.toString());
-                Set<String> words = getWords(terms);
+                //List<Term> terms = ToAnalysis.parse(sb.toString());
+                Set<String> words = getWords(sb.toString());
 
                 List<Tuple2<String, Integer>> result = new ArrayList<>();
                 words.forEach(w->result.add(new Tuple2<>(w, 1)));
@@ -92,8 +93,28 @@ public class SparkClac {
                 return result;
         }).reduceByKey((a,b)->a+b);
 
+        //统计单个词词语出现在各个字段中的文档频率
+        JavaPairRDD<Tuple3<String,String,String>, Integer> columnFrequency =lines.flatMapToPair(line-> {
+            Map<String, String> article = LineReader.readRecord(line);
+            String id = article.get("id");
+            List<Tuple2<Tuple3<String,String,String>,Integer>> result = new ArrayList<>();
+
+            for(String col:allColumn){
+                String s = article.get(col);
+                Set<String> words = getWords(s);
+                for(String word:words){
+                    Tuple3<String,String,String> key = new Tuple3<>(word,col,id);
+                    result.add(new Tuple2<>(key,1));
+                }
+            }
+
+            return result;
+            }).reduceByKey((a,b)->a+b);
+
+        return columnFrequency;
+
         //统计词窗内权重
-        JavaPairRDD<Tuple2<String,String>, Double> weightRDD = lines.flatMapToPair(new PairFlatMapFunction<String, Tuple2<String, String>, Double>() {
+        /*JavaPairRDD<Tuple2<String,String>, Double> weightRDD = lines.flatMapToPair(new PairFlatMapFunction<String, Tuple2<String, String>, Double>() {
             public Iterable<Tuple2<Tuple2<String, String>, Double>> call(String line) {
                 Map<String, String> article = LineReader.readRecord(line);
 
@@ -198,7 +219,7 @@ public class SparkClac {
                     tp._2().forEach(t -> list.add(t));
                     Collections.sort(list, (a, b) -> ((Double.compare(b._6(), a._6()))));
                     return new Tuple2<>(tp._1(), list.size() > 100 ? list.subList(0, 100) : list);
-                });
+                });*/
     }
 
     public static void main(String[] args){
