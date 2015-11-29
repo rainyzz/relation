@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.ansj.domain.Term;
 import org.ansj.splitWord.analysis.ToAnalysis;
+import org.glassfish.grizzly.utils.ArraySet;
 
 import java.util.*;
 
@@ -55,7 +56,8 @@ public class ConCalc {
     public static void calcNum(Map<String,String> article, Count  wordCount,
                                   Map<Integer,Count> wordCoCount){
 
-        List<Integer> words = new ArrayList<>();
+        //List<Integer> words = new ArrayList<>();
+        Set<Integer> words = new HashSet<>();
         StringBuffer sb = new StringBuffer();
         allColumn.forEach(col-> Arrays.asList(sb.append(article.get(col)).append(" ")));
 
@@ -82,7 +84,7 @@ public class ConCalc {
             wordCount.increase(word,1);
         }
         //通过本篇文章中统计情况，更新全局的词语统计和相关词语统计
-        /*for(Integer wordA : words){
+        for(Integer wordA : words){
             Count map = null;
             if(!wordCoCount.containsKey(wordA)) {
                 map = new Count();
@@ -97,8 +99,8 @@ public class ConCalc {
                 map.increase(wordB,1);
             }
             wordCoCount.put(wordA,map);
-        }*/
-        for (int i = 0; i < words.size(); i++) {
+        }
+        /*for (int i = 0; i < words.size(); i++) {
             Integer wordA = words.get(i);
             Count map = null;
             if (!wordCoCount.containsKey(wordA)) {
@@ -120,7 +122,7 @@ public class ConCalc {
                 map.increase(wordB, 1);
             }
             wordCoCount.put(wordA,map);
-        }
+        }*/
     }
     public static Map<Integer,Count> update(Count wordCount, Map<Integer,Count> wordCoCount){
         Map<Integer,Count> res = Maps.newHashMap();
