@@ -128,8 +128,8 @@ public class ConCalc {
         Map<Integer,Count> res = Maps.newHashMap();
 
         for(Integer wordA:wordCoCount.keySet()){
-            Count p = new Count();
-            Count coCount = wordCoCount.get(wordA);
+            Count<Integer> p = new Count<>();
+            Count<Integer>  coCount = wordCoCount.get(wordA);
             for(Map.Entry<Integer,Double> entry:coCount.entrySet()){
                 Integer wordB = entry.getKey();
                 p.set(entry.getKey(), coCount.get(wordB) * 1.0 / wordCount.get(wordA));

@@ -2,7 +2,10 @@ package com.rainyzz.relation.util;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multiset;
+import com.rainyzz.relation.core.Count;
 import org.ansj.domain.Term;
 import org.ansj.splitWord.analysis.ToAnalysis;
 import org.apache.solr.client.solrj.SolrClient;
@@ -15,9 +18,7 @@ import org.apache.solr.common.SolrDocumentList;
 
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by rainystars on 10/26/2015.
@@ -29,6 +30,7 @@ public class TransFormer {
 
     static String[] provices = {"北京","天津","上海","重庆","河北","河南","云南","辽宁","黑龙江","湖南","安徽","山东","新疆","江苏","浙江","江西","湖北","广西","甘肃","山西","内蒙","陕西","吉林","福建","贵州","广东","青海 ","西藏","四川","宁夏","海南","台湾","香港","澳门"};
 
+    public static final String PATH ="";
     public static final String SINGLE_OUTPUT_PATH = "D://industry.txt";
     public static final String SPLIT_OUTPUT_PATH = "D:\\industry_split\\";
     public static final String ALL_SPLIT_OUTPUT_PATH = "D:\\all_split\\";
@@ -103,6 +105,59 @@ public class TransFormer {
             e.printStackTrace();
         }
     }
+
+    public static void GetFilterWords(String path){
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/wanfang");
+        String[] codes = {"R.RT","N.NT","R.R4","R.R1","R.R2","T.TP","T.TU","N.NP","T.TZ","R.RA","S.ST","T.TQ","N.NA","T.TN","R.R9","R.R6","T.TH","R.R5","T.TA","T.TM","S.S8","R.R3","T.TD","T.TX","T.TS","T.TV","T.TG","R.R16","N.NQ","N.N04","N.N06","T.TB","R.R76","R.R8","S.S2","R.R74","N.N01","T.TE","R.R71","S.S6","R.R73","T.TF","S.S7","T.TJ","T.TK","S.S1","T.TY","S.S5","F.F4","S.SA","C.C91","S.S3","N.N03","R.R75","S.S4","G.GA","S.S9","F.F3","T.TL","G.G4","F.F2","B.BD9","G.G21","G.G25","C.C913","G.GJ","C.CA","G.G3","F.F0","F.FA","C.C97","B.BD","C.CK0"};
+        Count<String> finalCount = new Count<>();
+        for(int year = 2012; year <= 2012;year++){
+
+            for (String code:codes){
+                Count<String> count = new Count<>();
+
+
+                SolrQuery query = new SolrQuery("code2:"+code+" AND author_cn:* AND year:"+year);
+                query.setRows(10 * 10000);
+
+                QueryResponse response = null;
+                try {
+                    response = solr.query(query);
+                } catch (SolrServerException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if(response == null){
+                    continue;
+                }
+                SolrDocumentList list = response.getResults();
+
+                for(SolrDocument doc:list) {
+                    Set<String> wordSet = new HashSet<>();
+                    String s = token(doc.get("title_cn").toString());
+                    String s2 = token(doc.get("abstract_cn").toString());
+                    wordSet.addAll(Splitter.on(" ").splitToList(s));
+                    wordSet.addAll(Splitter.on(" ").splitToList(s2));
+                    wordSet.forEach(w->count.increase(w,1));
+                }
+                List<Map.Entry<String,Double>> top = count.sort(100);
+                for(Map.Entry<String,Double> entry:top){
+                    finalCount.increase(entry.getKey(),1);
+                }
+                System.out.println(code+"#"+top);
+            }
+            List<Map.Entry<String,Double>> finalTop = finalCount.sort(200);
+
+            for(Map.Entry<String,Double> entry:finalTop){
+                System.out.println(entry.getKey()+"#"+ entry.getValue()/codes.length);
+            }
+
+            System.out.println("total"+codes.length);
+
+        }
+    }
+
+
     public static void readAllWfSplitterFromSolr(String path){
         SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/wanfang");
         String[] codes = {"R.RT","N.NT","R.R4","R.R1","R.R2","T.TP","T.TU","N.NP","T.TZ","R.RA","S.ST","T.TQ","N.NA","T.TN","R.R9","R.R6","T.TH","R.R5","T.TA","T.TM","S.S8","R.R3","T.TD","T.TX","T.TS","T.TV","T.TG","R.R16","N.NQ","N.N04","N.N06","T.TB","R.R76","R.R8","S.S2","R.R74","N.N01","T.TE","R.R71","S.S6","R.R73","T.TF","S.S7","T.TJ","T.TK","S.S1","T.TY","S.S5","F.F4","S.SA","C.C91","S.S3","N.N03","R.R75","S.S4","G.GA","S.S9","F.F3","T.TL","G.G4","F.F2","B.BD9","G.G21","G.G25","C.C913","G.GJ","C.CA","G.G3","F.F0","F.FA","C.C97","B.BD","C.CK0"};
@@ -135,6 +190,9 @@ public class TransFormer {
                     continue;
                 }
                 SolrDocumentList list = response.getResults();
+                if(list.size() < 2000){
+                    continue;
+                }
                 try {
                     for(SolrDocument doc:list){
                         JSONObject jb = new JSONObject(doc);
@@ -343,6 +401,7 @@ public class TransFormer {
     public static void main(String[] args){
         //readWfFromSolr(SINGLE_OUTPUT_PATH);
         //readWfSplitterFromSolr(SPLIT_OUTPUT_PATH);
-        readAllWfSplitterFromSolr(ALL_SPLIT_OUTPUT_PATH);
+        //readAllWfSplitterFromSolr(ALL_SPLIT_OUTPUT_PATH);
+        GetFilterWords(PATH);
     }
 }

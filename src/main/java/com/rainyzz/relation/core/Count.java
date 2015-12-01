@@ -7,13 +7,13 @@ import java.util.*;
 /**
  * Created by rainystars on 10/22/2015.
  */
-public class Count {
-    private Map<Integer,Double> map = null;
+public class Count<K> {
+    private Map<K,Double> map = null;
     public Count(){
         map = Maps.newHashMapWithExpectedSize(20);
     }
 
-    public Set<Map.Entry<Integer,Double>> entrySet(){
+    public Set<Map.Entry<K,Double>> entrySet(){
         return map.entrySet();
     }
 
@@ -21,14 +21,14 @@ public class Count {
         return map.size();
     }
 
-    public Double get(Integer i){
+    public Double get(K i){
         return map.get(i);
     }
-    public void set(Integer i, Double d){
+    public void set(K i, Double d){
         map.put(i,d);
     }
 
-    public void increase(Integer index, double num){
+    public void increase(K index, double num){
         if(map.containsKey(index)){
             map.put(index,map.get(index)+num);
         }else{
@@ -36,7 +36,7 @@ public class Count {
         }
     }
 
-    public List sort(){
+    public List sort(int count){
         List<Map.Entry> list = new ArrayList(map.entrySet());
         if(list.size() <= 4){
             return list;
@@ -47,8 +47,8 @@ public class Count {
                         .compareTo(((Map.Entry) (o2)).getValue());
             }
         });
-        if(list.size() > 40){
-            list = list.subList(0,40);
+        if(list.size() > count){
+            list = list.subList(0,count);
         }
         return list;
     }
