@@ -20,8 +20,10 @@ public class Run {
     public static final int START_YEAR = 2012;
     public static final int END_YEAR = 2013;
 
-    public static final String INPUT_PTAH = "D:\\毕业设计测试数据\\agriculture-70w.txt";
-    public static final String OUTPUT_PTAH = "D:\\output-agriculture-nowindow.txt";
+
+    public static final String INPUT_PTAH = "/Users/rainystars/Downloads/final-input/agriculture-70w.txt";
+    public static final String OUTPUT_PTAH = "/Users/rainystars/Downloads/agri-lar.txt";
+
 
     public static void calcPossiblity(){
         UserDefineLibrary.loadLibrary(UserDefineLibrary.FOREST,LIBRARY_PTAH);
@@ -37,7 +39,7 @@ public class Run {
             String line;
             while ((line = br.readLine()) != null) {
                 Map<String,String> article = LineReader.readRecord(line);
-                ConCalc.calcNum(article, wordCount, wordCoCount);
+                ConCalc.calcDocNum(article, wordCount, wordCoCount);
                 long endTime=System.currentTimeMillis();
                 System.out.println("Calculated in " + (endTime - beginTime) / 1000.0 + "s");
             }
@@ -54,7 +56,7 @@ public class Run {
     }
 
     public static void calc(){
-        Dao dao = new Dao();
+        //Dao dao = new Dao();
         UserDefineLibrary.loadLibrary(UserDefineLibrary.FOREST,LIBRARY_PTAH);
 
         long beginTime = System.currentTimeMillis();
@@ -69,6 +71,15 @@ public class Run {
             BufferedReader br = new BufferedReader(fr);
             FileWriter fw = new FileWriter(new File(OUTPUT_PTAH));
             String line;
+
+            while((line = br.readLine()) != null){
+                Map<String,String> article = LineReader.readRecord(line);
+                MyClac.initDf(article);
+            }
+            MyClac.printIdf();
+            fr.close();
+            fr = new FileReader(new File(INPUT_PTAH));
+            br = new BufferedReader(fr);
             while ((line = br.readLine()) != null) {
                 Map<String,String> article = LineReader.readRecord(line);
                 MyClac.calc(article, wordTotalCount, frenquecy, wordCount, wordCoCount);
@@ -94,7 +105,7 @@ public class Run {
     }
 
     public static void main(String[] args){
-        //calc();
-        calcPossiblity();
+        calc();
+        //calcPossiblity();
     }
 }
