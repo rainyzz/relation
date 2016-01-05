@@ -1,5 +1,6 @@
 package com.rainyzz.relation.util;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.rainyzz.relation.core.ConCalc;
@@ -20,30 +21,36 @@ import java.util.*;
 public class ResWriter {
     public static void main(String[] args){
         //writeToSolr();
-        readDir(SPARK_FILE,"spark");
-        readDir(SPARK_UNFILTER_FILE,"spark-un");
+        readDirShort(SPARK_FILE,"lar-med");
+        readDirShort(SPARK_UNFILTER_FILE,"lar-un-med");
         //readFile(PRO_FILE,"pro");
         //readFile(PRO_UNFILTER_FILE,"pro-un");
         //readDirShort(PRO_DIR,"pro");
         //readDirShort(PRO_UNFILTER_DIR,"pro-un");
     }
 
-    private static String INPUT_DIR = "D:\\毕业设计测试数据\\结果数据\\geo-all\\";
+    private static String SPARK_FILE  ="D:\\lar-med-filter";
+    private static String SPARK_UNFILTER_FILE  = "D:\\lar-med-unfilter";
+    private static String PRO_DIR  = "D:\\med-rt\\pro-filter";
+    private static String PRO_UNFILTER_DIR  = "D:\\med-rt\\pro-unfilter";
+
+    private static String INPUT_DIR = "D:\\final-geo-ouput-final";
+
+
+    /*private static String INPUT_DIR = "D:\\毕业设计测试数据\\结果数据\\geo-all\\";
     private static String SPARK_FILE  ="D:\\实验结果\\word-agriculture";
     private static String SPARK_UNFILTER_FILE  = "D:\\实验结果\\word-agriculture-unfilter";
     private static String PRO_FILE  = "D:\\实验结果\\output-agriculture.txt";
     private static String PRO_UNFILTER_FILE  = "D:\\实验结果\\output-agriculture-unfilterd.txt";
     private static String PRO_DIR  = "D:\\实验结果\\word-agriculture-pro2";
-    private static String PRO_UNFILTER_DIR  = "D:\\实验结果\\word-agriculture-pro2-unfilter";
+    private static String PRO_UNFILTER_DIR  = "D:\\实验结果\\word-agriculture-pro2-unfilter";*/
 
     public static void writeSparkResultToSolr(){
-
-
 
     }
 
     public static void readFile(String path,String typeId){
-        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/compare");
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/compare-med");
         long count = 0;
         try {
             FileReader fr = new FileReader(new File(path));
@@ -99,7 +106,7 @@ public class ResWriter {
     public static void readDirShort(String path,String typeId){
         List<File> fileList = Util.getDirList(path);
         long count = 0;
-        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/compare");
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/compare-lar");
         for(File file:fileList) {
             String dirName = file.getName();
             if (!dirName.contains("part") || dirName.contains("crc")) {
@@ -170,7 +177,7 @@ public class ResWriter {
     public static void readDir(String path,String typeId){
         List<File> fileList = Util.getDirList(path);
         long count = 0;
-        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/compare");
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/compare-med");
         for(File file:fileList) {
             String dirName = file.getName();
             if (!dirName.contains("part") && !dirName.contains("crc")) {
@@ -235,7 +242,7 @@ public class ResWriter {
 
     public static void writeToSolr(){
         List<File> dirList = Util.getDirList(INPUT_DIR);
-        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/result");
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/result2");
         long count = 0;
         for(File dir:dirList){
             String dirName = dir.getName();
@@ -260,7 +267,18 @@ public class ResWriter {
 
                         SolrInputDocument solrDoc = new SolrInputDocument();
                         int firstComma = line.indexOf(',');
-                        String mainWord = line.substring(1, firstComma);
+                        if(firstComma == -1){
+                            continue;
+                        }
+                        String mainWord = null;
+                        if(firstComma <= 1){
+                            continue;
+                        }
+                        try {
+                            mainWord = line.substring(1, firstComma);
+                        } catch (Exception e) {
+                            continue;
+                        }
                         String othersWord = line.substring(firstComma,line.length());
                         if(othersWord.length() < 5){
                             continue;
@@ -273,14 +291,23 @@ public class ResWriter {
                             List<String> items = Splitter.on(",").splitToList(record);
                             String w = items.get(0);
                             mainWordCount = items.get(3);
-                            String value = String.format("%.9f", Double.parseDouble(items.get(5)));
+                            String value = null;
+                            try {
+                                value = String.format("%.6f", Double.parseDouble(items.get(5))*100);
+                            } catch (NumberFormatException e) {
+                                continue;
+                            }
                             processedRecords.add(w+","+value);
                         }
                         count++;
+                        if(processedRecords.size() > 50){
+                            processedRecords = processedRecords.subList(0,50);
+                        }
                         solrDoc.addField("id", count);
                         solrDoc.addField("mainWord",mainWord);
                         solrDoc.addField("mainWordCount",mainWordCount+"."+year+"9");
-                        solrDoc.addField("words_m",processedRecords);
+                        solrDoc.addField("words", Joiner.on("##").join(processedRecords));
+                        //solrDoc.addField("words_m",processedRecords);
                         solrDoc.addField("year",year);
                         solrDoc.addField("province",province);
                         solr.add(solrDoc);

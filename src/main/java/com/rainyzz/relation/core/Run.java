@@ -21,9 +21,10 @@ public class Run {
     public static final int END_YEAR = 2013;
 
 
-    public static final String INPUT_PTAH = "/Users/rainystars/Downloads/final-input/agriculture-70w.txt";
-    public static final String OUTPUT_PTAH = "/Users/rainystars/Downloads/agri-lar.txt";
-
+    /*public static final String INPUT_PTAH = "/Users/rainystars/Downloads/final-input/agriculture-70w.txt";
+    public static final String OUTPUT_PTAH = "/Users/rainystars/Downloads/output-agriculture-nowindow.txt";*/
+    public static final String INPUT_PTAH = "D:\\毕业设计测试数据\\small.txt";
+    public static final String OUTPUT_PTAH = "D:\\new-filter.txt";
 
     public static void calcPossiblity(){
         UserDefineLibrary.loadLibrary(UserDefineLibrary.FOREST,LIBRARY_PTAH);
@@ -56,7 +57,7 @@ public class Run {
     }
 
     public static void calc(){
-        //Dao dao = new Dao();
+
         UserDefineLibrary.loadLibrary(UserDefineLibrary.FOREST,LIBRARY_PTAH);
 
         long beginTime = System.currentTimeMillis();

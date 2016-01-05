@@ -22,15 +22,17 @@ import java.util.List;
 public class ResultCompare {
 
     static String[] keywords = {"基因","氮肥","病毒","基因","小麦","水稻","免疫","肥料","抗体","克隆","大米","繁殖","品种","细胞","植物","蛋白","细胞","细菌","昆虫","饲料","栽培","培育","种植","作物","蔬菜","营养","土地","土壤","安全","播种"};
-    public static String DATA_FILE = "D://compare-data.txt";
-    public static String TAG_FILE = "D://compare-tag.txt";
+//static String[] keywords = {"基因","肝脏","病毒","基因","细菌","心脏","肝病","患者","血管","临床","血管","动脉","静脉","细胞","粘膜","皮肤","神经","烧伤","关节","疼痛","注射","药品","蔬菜","感染","营养","土壤","输液","注射"};
+
+    public static String DATA_FILE = "D://compare-arg-lar-data.txt";
+    public static String TAG_FILE = "D://compare-arg-lar-tag.txt";
 
     public static void  main(String[] args){
         search();
     }
 
     public static void search(){
-        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/compare");
+        SolrClient solr = new HttpSolrClient("http://localhost:8983/solr/compare-lar");
 
         BufferedWriter outData = null;
         BufferedWriter outTag = null;
@@ -54,9 +56,9 @@ public class ResultCompare {
                 e.printStackTrace();
             }
             SolrDocumentList list = response.getResults();
-            if(list.size()!=4){
+            /*if(list.size()!=4){
                 continue;
-            }
+            }*/
             int count = 1;
             try {
                 for(SolrDocument doc:list){
