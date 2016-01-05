@@ -69,7 +69,6 @@ public class ProSpark {
             return new Tuple2<>(tp._1(), list.size() > 100 ? list.subList(0, 100) : list);
         });
 
-
     }
 
     public static void main(String[] args){

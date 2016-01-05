@@ -1,10 +1,9 @@
 package com.rainyzz.relation.mapreduce;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.Maps;
-
 import com.rainyzz.relation.util.LineReader;
 
+import org.ansj.domain.Term;
+import org.ansj.splitWord.analysis.ToAnalysis;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -20,6 +19,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class WordCount {
+
     public static class WordCountMapper extends Mapper<LongWritable,Text,Text,Text> {
         public static final double E = 2.71828182846;
         public static final double U = 0.1;
@@ -51,21 +51,22 @@ public class WordCount {
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             String sentence = value.toString();
             Map<String, String> article = LineReader.readRecord(sentence);
-            Set<String> words = new HashSet<String>();
+            Set<String> words = new HashSet<>();
+            //Set<String> words = getWords(sentence);
 
-            for (String word : Splitter.on(" ").omitEmptyStrings().split(article.get("abs"))) {
+            for (String word : article.get("abstract_cn").split(" ")) {
                 words.add(word);
             }
-            for (String word : Splitter.on(" ").omitEmptyStrings().split(article.get("title"))) {
+            /*for (String word : Splitter.on(" ").omitEmptyStrings().split(article.get("title"))) {
                 words.add(word);
             }
             for (String word : Splitter.on(" ").omitEmptyStrings().split(article.get("keyword"))) {
                 words.add(word);
-            }
+            }*/
 
-            String[] abstracts = article.get("abs").split(" ");
-            String[] titles = article.get("title").split(" ");
-            String[] keywords = article.get("keyword").split(" ");
+            String[] abstracts = article.get("abstract_cn").split(" ");
+           // String[] titles = article.get("title").split(" ");
+            //String[] keywords = article.get("keyword").split(" ");
 
             // 统计单个词出现的文档个数
             for (String w : words) {
@@ -111,8 +112,8 @@ public class WordCount {
                 context.write(word,result);
 
                 //对于当前词，其与所有其他字段中词语都有关系。 diffCoCount
-                otherColumnClac(keywords, curWord, context);
-                otherColumnClac(titles,curWord,context);
+                //otherColumnClac(keywords, curWord, context);
+                //otherColumnClac(titles,curWord,context);
 
             }
         }
@@ -207,8 +208,8 @@ public class WordCount {
                     InterruptedException {
                 int wordDocCount = 0;
                 int wordCount = 0;
-                Map<String, Integer> pairDocCounts = Maps.newHashMap();
-                Map<String, Double> windowWeights = Maps.newHashMap();
+                Map<String, Integer> pairDocCounts = new HashMap<>();
+                Map<String, Double> windowWeights = new HashMap<>();
                 for (Text value : values) {
                     String v = value.toString();
                     if (v.startsWith("&")) {
@@ -266,7 +267,7 @@ public class WordCount {
                     }
                 }
                 // Final Weight
-                Map<String, Double> rst = Maps.newHashMap();
+                Map<String, Double> rst = new HashMap<>();
                 for (String wordB : windowWeights.keySet()) {
 
                     double windowWeight = windowWeights.get(wordB);

@@ -98,7 +98,7 @@ public class SparkClacAnother {
                         result.add(new Tuple2<>(curWord,new Tuple2<>("@"+text[j],weight)));
                     }
                     //对于当前词，其与所有其他字段中词语都有关系。 diffCoCount
-                    otherColumns.forEach(col -> otherColumnClac(article.get(col).split(" "), curWord, text.length, result));
+                    //otherColumns.forEach(col -> otherColumnClac(article.get(col).split(" "), curWord, text.length, result));
 
                 }
             }

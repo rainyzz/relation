@@ -32,7 +32,10 @@ public class SparkClac {
     public static Set<String> allColumn = new HashSet<>(Arrays.asList("abstract_cn","title_cn","keyword_cn"));
 
     public static Set<String> getWords(String line){
-        List<Term> terms = ToAnalysis.parse(line);
+        String[] words = line.split(" ");
+        return new HashSet<>(Arrays.asList(words));
+
+        /*List<Term> terms = ToAnalysis.parse(line);
         Set<String> words = new HashSet<>();
         terms.forEach(term-> {
             if (FILTER_FLAG) {
@@ -47,11 +50,22 @@ public class SparkClac {
                 }
             }
         });
-        return words;
+        return words;*/
     }
 
     public static Map<String,Integer> getWordsCount(String line){
-        List<Term> terms = ToAnalysis.parse(line);
+        Map<String,Integer> count = new HashMap<>();
+        String[] words = line.split(" ");
+        for(String word:words){
+            if(count.containsKey(word)){
+                count.put(word,count.get(word)+1);
+            }else {
+                count.put(word,1);
+            }
+        }
+        return count;
+
+        /*List<Term> terms = ToAnalysis.parse(line);
         Map<String,Integer> words = new HashMap<>();
         for(Term term:terms){
             String word = term.getName();
@@ -74,7 +88,7 @@ public class SparkClac {
             }
         }
 
-        return words;
+        return words;*/
     }
 
 
@@ -117,6 +131,8 @@ public class SparkClac {
 
                 return result;
         }).reduceByKey((a,b)->a+b);
+
+        wordDocCountRDD.cache();
 
         //统计单个词词语出现在各个字段中的文档频率
         JavaPairRDD<Tuple2<String,String>, Integer> columnFrequency =lines.flatMapToPair(line-> {
@@ -194,7 +210,7 @@ public class SparkClac {
             int curLen = tp._2()._2()._3();
             int otherLen = tp._2()._2()._4();
 
-            double fakeDistance = (Math.log(otherLen / curLen + 1) / Math.log(2));
+            double fakeDistance = (Math.log(otherLen / curLen + 1) / Math.log(2) * Math.log(curLen+1)/Math.log(4));
 
             if(fakeDistance < 1){
                 fakeDistance = 1;
@@ -225,7 +241,7 @@ public class SparkClac {
 
                 return result;
             }
-            // LAR Model
+            // 词窗
             private void calcWeight(Map<String, String> article,String column,List<Tuple2<Tuple2<String, String>, Double>> result,Set<String> allColumn){
                 String[] text = article.get(column).split(" ");
                 Set<String> otherColumns = new HashSet<>(allColumn);
@@ -300,6 +316,7 @@ public class SparkClac {
             return result;
 
         }).reduceByKey((a, b) -> a + b);
+        wordCountRDD.cache();
 
         // 将所有前面的字段值结合在一起
         JavaPairRDD<String, Tuple5<String,Integer,Double,Integer,Integer>> allDataRDD =
@@ -335,7 +352,7 @@ public class SparkClac {
     }
 
     public static void main(String[] args){
-        SparkConf conf = new SparkConf().setAppName("Word Relation").setExecutorEnv("spark.executor.memory","4g");
+        SparkConf conf = new SparkConf().setAppName("Word Relation");
         JavaSparkContext sc = new JavaSparkContext(conf);
         String inputFile = args[0];
         String outputFile = args[1];

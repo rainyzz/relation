@@ -4,3 +4,4 @@ target/
 *.iml
 *.jar
 *.MF
+out/
